@@ -25,10 +25,10 @@ const ENTER_KEYS: [KeyCode; 2] = [KeyCode::Enter, KeyCode::End];
 
 /// You cannot block middle-click paste/scroll behavior from inside your Rust TUI app.
 /// If you really want to disable it, you would have to modify user system settings or terminal emulator config
-/// (e.g., in alacritty, kitty, gnome-terminal, etc.)
+/// (e.g., in alacrity, kitty, gnome-terminal, etc.)
 /// That is outside the app's control
 /// # Panics
-/// if Arc panic while holding the resources (poisoning), no recovery mechanism implemented better crash
+/// if Arc panics while holding the resources (poisoning), no recovery mechanism implemented better crash
 pub fn playing_input_loop(direction: &Arc<RwLock<Direction>>, gs: &Arc<RwLock<GameState>>) {
     loop {
         if let Ok(event::Event::Key(key)) = event::read() {
@@ -72,24 +72,24 @@ pub fn playing_input_loop(direction: &Arc<RwLock<Direction>>, gs: &Arc<RwLock<Ga
 }
 
 #[derive(PartialEq, Clone, Debug)]
-pub enum GreetingOption {
-    StartGame,
-    Parameters,
+pub enum GreetingMenuInput {
     Fruits,
-    Velocity,
+    Speed,
+    Start,
+    Parameters,
     Help,
-    MainMenu,
+    Main,
     QuitGame,
     Next,
     Previous,
     Enter,
 }
-/// Check input on greeting screen
+/// Check input on the greeting screen
 /// Return Some(GreetingOption) if input is valid, with the chosen Greeting Option, None otherwise
 /// # Panics                                                                                              
 /// if impossible to get key event, better crash as game will be unplayable  
 #[must_use]
-pub fn greeting_screen_manage_input() -> Option<GreetingOption> {
+pub fn greeting_screen_manage_input() -> Option<GreetingMenuInput> {
     // Read keyboard key event
     if let event::Event::Key(key) = event::read().expect("Error reading key event") {
         match key.kind {
@@ -98,26 +98,26 @@ pub fn greeting_screen_manage_input() -> Option<GreetingOption> {
                 flush_input_buffer();
                 // If it is a directional key
                 if START_KEYS.contains(&key.code) {
-                    Some(GreetingOption::StartGame)
-                    // if it is a quit keys
+                    Some(GreetingMenuInput::Start)
+                    // if it is a quit key
                 } else if QUIT_KEYS.contains(&key.code) {
-                    Some(GreetingOption::QuitGame)
+                    Some(GreetingMenuInput::QuitGame)
                 } else if PARAMETERS_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Parameters)
+                    Some(GreetingMenuInput::Parameters)
                 } else if FRUITS_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Fruits)
+                    Some(GreetingMenuInput::Fruits)
                 } else if VELOCITY_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Velocity)
+                    Some(GreetingMenuInput::Speed)
                 } else if HELP_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Help)
+                    Some(GreetingMenuInput::Help)
                 } else if MAIN_MENU_KEYS.contains(&key.code) {
-                    Some(GreetingOption::MainMenu)
+                    Some(GreetingMenuInput::Main)
                 } else if NEXT_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Next)
+                    Some(GreetingMenuInput::Next)
                 } else if PREVIOUS_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Previous)
+                    Some(GreetingMenuInput::Previous)
                 } else if ENTER_KEYS.contains(&key.code) {
-                    Some(GreetingOption::Enter)
+                    Some(GreetingMenuInput::Enter)
                 } else {
                     None
                 }
@@ -129,7 +129,7 @@ pub fn greeting_screen_manage_input() -> Option<GreetingOption> {
     }
 }
 fn flush_input_buffer() {
-    while crossterm::event::poll(std::time::Duration::from_secs(0)).unwrap_or(false) {
+    while event::poll(std::time::Duration::from_secs(0)).unwrap_or(false) {
         let _ = crossterm::event::read(); // Discard any buffered events
     }
 }

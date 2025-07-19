@@ -3,20 +3,23 @@ use crate::controls::input::playing_input_loop;
 pub use crate::controls::speed::Speed;
 pub use crate::game_logic::fruits_manager::FruitsManager;
 use crate::game_logic::game_options::GameOptions;
-use crate::game_logic::playing_logic::{controls_greeting_screen, playing_logic_loop};
+use crate::game_logic::playing_logic::{controls_main_switch_menu, playing_logic_loop};
 pub use crate::game_logic::state::{GameState, GameStatus};
 use crate::graphics::playing_render::playing_render_loop;
 use crate::graphics::sprites::map::Map;
 use crate::graphics::sprites::snake_body::SnakeBody;
+use ratatui::text::Span;
 use ratatui::DefaultTerminal;
+use std::cmp::max;
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-/// Our game engine
-///NB: 'c must outlive 'b as, 'c (fruits manager) uses in intern the map with lock on it.
-pub struct Game<'a, 'b, 'c: 'b> {
+/// our game engine
+/// NB: 'c must outlive 'b as, 'c (fruits manager) uses in intern the map with lock on it.
+/// NB: 't the terminal life must outlive all the other lifetimes
+pub struct Game<'a, 'b, 'c: 'b, 't: 'a + 'b + 'c> {
     /// Game main parameters
-    options: GameOptions,
+    options: &'t GameOptions,
     /// The game logic speed, linked to the snake movements
     speed: Speed,
     /// Represents the snake moving around
@@ -31,16 +34,16 @@ pub struct Game<'a, 'b, 'c: 'b> {
     /// Manage fruits (popping, eaten etc.)
     fruits_manager: Arc<RwLock<FruitsManager<'c, 'b>>>,
     /// The current terminal
-    terminal: DefaultTerminal,
+    terminal: &'t mut DefaultTerminal,
 }
-impl<'a, 'b, 'c> Game<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
     #[must_use]
-    pub fn new(
-        options: GameOptions,
+    fn new(
+        options: &'t GameOptions,
         serpent: SnakeBody<'a>,
         carte: Map<'b>,
-        terminal: DefaultTerminal,
-    ) -> Game<'a, 'b, 'c> {
+        terminal: &'t mut DefaultTerminal,
+    ) -> Game<'a, 'b, 'c, 't> {
         let arc_carte = Arc::new(RwLock::new(carte));
         let life = options.life;
         let fruits_nb = options.nb_of_fruit;
@@ -65,28 +68,44 @@ impl<'a, 'b, 'c> Game<'a, 'b, 'c> {
     ///
     /// This function will panic if the internal `state` lock is poisoned
     /// and cannot be read.
-    pub fn menu(&mut self) {
-        // In a loop to allow to replay and to go back to main menu
-        while self
-            .state
-            .read()
-            .expect("Panic in a previous thread, check previous error")
-            .status
-            != GameStatus::ByeBye
-        {
-            if controls_greeting_screen(&mut self.terminal) {
-                self.init();
-                self.start();
+    pub fn menu(mut options: GameOptions, mut terminal: DefaultTerminal) {
+        //one loop means one game, hard reset of the game from the menu
+        // (as parameters can change in the parameter menu)
+        loop {
+            //Display the menu and get the user choice: play or not
+            if controls_main_switch_menu(&mut terminal, &mut options) {
+                // if the player wants to play, we need to initiate some game values
+
+                // get the correct case size for display
+                let case_size = u16::try_from(max(
+                    Span::raw(&options.body_symbol).width(),
+                    Span::raw(&options.head_symbol).width(),
+                    //ratatui using UnicodeWidthStr crates as dep
+                ))
+                .expect("Bad symbol size, use a real character");
+                let carte: Map = Map::new(case_size, terminal.get_frame().area());
+                let serpent: SnakeBody = SnakeBody::new(
+                    &options.body_symbol,
+                    &options.head_symbol,
+                    options.snake_length,
+                    GameOptions::initial_position(),
+                    case_size,
+                );
+                let mut game = Game::new(&options, serpent, carte, &mut terminal);
+                game.start();
+                if game
+                    .state
+                    .read()
+                    .expect("Panic in a previous thread, check previous error")
+                    .status
+                    == GameStatus::ByeBye
+                {
+                    break;
+                }
             } else {
-                return;
+                break;
             }
         }
-    }
-    fn init(&mut self) {
-        //init data for a new game
-        self.state.write().unwrap().reset();
-        self.serpent.write().unwrap().reset();
-        *self.direction.write().unwrap() = Direction::Right;
     }
     /// Start the main Game threads: input, rendering, logic
     pub fn start(&mut self) {
@@ -136,7 +155,7 @@ impl<'a, 'b, 'c> Game<'a, 'b, 'c> {
                 &Arc::clone(&self.serpent),
                 self.options.uncaps_fps,
                 (self.speed.score_modifier(), self.speed.symbol()),
-                &mut self.terminal,
+                self.terminal,
             );
         });
     }

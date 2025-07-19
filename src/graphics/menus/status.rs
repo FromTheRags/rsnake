@@ -1,4 +1,4 @@
-use crate::graphics::menus::layout_utils::render_full_centered_paragraph;
+use crate::graphics::menus::utils_layout::render_full_centered_paragraph;
 use ratatui::style::Color;
 use ratatui::Frame;
 

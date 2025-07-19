@@ -1,9 +1,11 @@
 use crate::controls::direction::Direction;
-use crate::controls::input::GreetingOption::StartGame;
-use crate::controls::input::{greeting_screen_manage_input, GreetingOption};
+use crate::controls::input::{greeting_screen_manage_input, GreetingMenuInput};
 use crate::game_logic::fruits_manager::FruitsManager;
+use crate::game_logic::game_options::GameOptions;
+use crate::game_logic::playing_logic::SwitchMenu::{Fruits, Help, Main, Parameters, Run, Speed};
 use crate::game_logic::state::{GameState, GameStatus};
-use crate::graphics::menus::greeting_menu::main_greeting_menu;
+use crate::graphics::menus::greeting::{main_greeting_menu, GreetingSimpleDisplay, SwitchMenu};
+use crate::graphics::menus::parameters::ParametersMenu;
 use crate::graphics::sprites::fruit::Fruit;
 use crate::graphics::sprites::map::Map;
 use crate::graphics::sprites::snake_body::SnakeBody;
@@ -12,8 +14,11 @@ use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::Duration;
 
+const SWITCH_MENUS_OPTION: [SwitchMenu; 6] = [Main, Fruits, Speed, Run, Parameters, Help];
+
 /// # Panics
-/// if Arc panic while holding the resources (poisoning), no recovery mechanism implemented better crash  
+/// if Arc panics while holding the resources (poisoning),
+/// no recovery mechanism implemented better crash  
 pub fn playing_logic_loop(
     direction: &Arc<RwLock<Direction>>,
     snake: &Arc<RwLock<SnakeBody>>,
@@ -25,7 +30,7 @@ pub fn playing_logic_loop(
     let mut gsc;
     loop {
         //do not want to keep the lock for too long + cannot hold in the same thread 2 times the same hold
-        // so match a clone, or use a let
+        // so match a clone or use a let
         gsc = gs.read().unwrap().status.clone();
         //dead snakes tell no tales, nor move :p
         match gsc {
@@ -76,51 +81,62 @@ pub fn playing_logic_loop(
         sleep(Duration::from_millis(game_speed));
     }
 }
-/// Control part of the main menu
-/// allows to switch to sub menu (Fruits, Speed, Parameters etc.)
+/// The control part of the main menu
+/// allows switching to a submenu (Fruits, Speed, Parameters etc.)
 ///
-/// # Return true if the player want to play, false otherwise
+/// # Return true if the player wants to play, false otherwise
 ///
 /// # Panics                                                                                              
 /// if Terminal writing is not possible
-pub fn controls_greeting_screen(terminal: &mut DefaultTerminal) -> bool {
-    let mut stay = true;
-    let mut action: Option<GreetingOption> = None;
-    main_greeting_menu(terminal, &None, &StartGame);
-    // To manage keys to switch selected item
-    //begin with start
+pub fn controls_main_switch_menu(
+    terminal: &mut DefaultTerminal,
+    options: &mut GameOptions,
+) -> bool {
+    let mut to_display_menu = GreetingSimpleDisplay::MainMenu;
+    // To manage keys to switch the selected item
     let mut selected = 3;
-    let selection: [GreetingOption; 6] = [
-        GreetingOption::MainMenu,
-        GreetingOption::Fruits,
-        GreetingOption::Velocity,
-        GreetingOption::StartGame,
-        GreetingOption::Parameters,
-        GreetingOption::Help,
-    ];
-    while stay {
-        let current = greeting_screen_manage_input();
-        //to keep refreshing old menu otherwise and not come backing
-        if current.is_some() {
-            // if it is a key, manage the selected menu button change
-            if current == Some(GreetingOption::Next) {
-                selected = (selected + 1) % selection.len();
-            } else if current == Some(GreetingOption::Previous) {
-                //smart trick to loop over
-                selected = (selected + selection.len() - 1) % selection.len();
+    //first display
+    main_greeting_menu(terminal, &to_display_menu, &Run);
+    loop {
+        match greeting_screen_manage_input() {
+            Some(GreetingMenuInput::Parameters) => {
+                //call Parameters screen and input management with the game options to modify
+                ParametersMenu::new().run(terminal, options);
+                // come back to default menu display
+                selected = 3;
+                to_display_menu = GreetingSimpleDisplay::MainMenu;
             }
-            // if enter set the selected option
-            else if current == Some(GreetingOption::Enter) {
-                action = Some(selection[selected].clone());
-            } else {
-                action = current;
+            Some(GreetingMenuInput::Next) => {
+                selected = (selected + 1) % SWITCH_MENUS_OPTION.len();
             }
+            Some(GreetingMenuInput::Previous) => {
+                selected = (selected + SWITCH_MENUS_OPTION.len() - 1) % SWITCH_MENUS_OPTION.len();
+            }
+            //NB: selection can be done by selecting ENTER on a menu entry or using a key shortcut
+            // that why there is GreetingMenuInput::<option> directly alongside an enter option
+            Some(GreetingMenuInput::Enter) => {
+                to_display_menu =
+                    GreetingSimpleDisplay::from(SWITCH_MENUS_OPTION[selected].clone());
+                if SWITCH_MENUS_OPTION[selected] == Run {
+                    //start the game
+                    return true;
+                } else if SWITCH_MENUS_OPTION[selected] == Parameters {
+                    //call Parameters screen and input management with the game options to modify
+                    ParametersMenu::new().run(terminal, options);
+                    // come back to default menu display
+                    selected = 3;
+                    to_display_menu = GreetingSimpleDisplay::MainMenu;
+                }
+            }
+            Some(GreetingMenuInput::QuitGame) => {
+                return false;
+            }
+            Some(GreetingMenuInput::Start) => {
+                return true;
+            }
+            Some(x) => to_display_menu = GreetingSimpleDisplay::from(x),
+            _ => {}
         }
-        //display the menu
-        main_greeting_menu(terminal, &action, &selection[selected]);
-        if let Some(GreetingOption::StartGame | GreetingOption::QuitGame) = action {
-            stay = false;
-        }
+        main_greeting_menu(terminal, &to_display_menu, &SWITCH_MENUS_OPTION[selected]);
     }
-    action == Some(GreetingOption::StartGame)
 }

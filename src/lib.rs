@@ -40,12 +40,8 @@ pub mod game_logic;
 pub mod graphics;
 
 use crate::game_logic::playing_thread_manager::Game;
-use crate::graphics::sprites::snake_body::SnakeBody;
 use clap::Parser;
 use game_logic::game_options::GameOptions;
-use graphics::sprites::map::Map as Carte;
-use ratatui::text::Span;
-use std::cmp::max;
 
 /// # Panics
 /// If bad characters (invalid size) are provided for snake body or head
@@ -63,31 +59,10 @@ pub fn start_snake() {
             .expect("Fail to load Snake configuration file");
     }
     // If everything is OK, inits terminal for rendering
-    let mut terminal = ratatui::init();
-    //ratatui using UnicodeWidthStr crates as dep
-    // get the correct case size for display
-    let case_size = u16::try_from(max(
-        Span::raw(&args.body_symbol).width(),
-        Span::raw(&args.head_symbol).width(),
-    ))
-    .expect("Bad symbol size, use a real character");
-    //except if gamer want to quit from the menu screen, we continue
-    // set up parameters from option parsing
-    let map: Carte = Carte::new(case_size, terminal.get_frame().area());
+    let terminal = ratatui::init();
 
-    let body_symbol = args.body_symbol.clone();
-    let head_symbol = args.head_symbol.clone();
-    let serpent: SnakeBody = SnakeBody::new(
-        &body_symbol,
-        &head_symbol,
-        args.snake_length,
-        GameOptions::initial_position(),
-        case_size,
-    );
-    // init our own Game engine
-    let mut jeu = Game::new(args, serpent, map, terminal);
-    // Display greeting screen
-    jeu.menu();
+    // init our own Game engine an display greeting screen
+    Game::menu(args, terminal);
 
     //in all cases, restore
     ratatui::restore();

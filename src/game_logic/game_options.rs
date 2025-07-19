@@ -55,7 +55,8 @@ pub struct GameOptions {
     pub speed: Speed,
 
     /// Snake symbol (emoji or character)
-    /// Defines short value because doublon, as short and long are by default based on the name of the variable
+    /// Defines short value because doublon, as short and long,
+    /// are by default based on the name of the variable
     #[arg(
         short = 'z',
         long,
@@ -122,6 +123,7 @@ pub struct GameOptions {
     )]
     pub classic_mode: bool,
     /// Save game parameters
+    /// NB: if one-day use with a user filename, add a clap argument for autocompletion: `value_hint` = `clap::ValueHint::FilePath`
     #[arg(
         long,
         default_value_t = false,

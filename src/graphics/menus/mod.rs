@@ -9,8 +9,7 @@
 //! - `selectable_item`: Provides a generic selectable list widget.
 //! - `status`: Contains UI elements for different game states (pause, game over, etc.).
 
-pub mod greeting_menu;
-pub mod layout_utils;
-pub mod parameters_menu;
-pub mod selectable_item;
+pub mod greeting;
+pub mod parameters;
 pub mod status;
+pub mod utils_layout;
