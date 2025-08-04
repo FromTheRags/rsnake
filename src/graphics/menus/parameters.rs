@@ -2,159 +2,217 @@ use crate::game_logic::game_options::GameOptions;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::layout::Margin;
-use ratatui::text::Text;
+use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{
-    BorderType, Cell, HighlightSpacing, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
-    Table, TableState,
+    BorderType, Cell, HighlightSpacing, Row, Scrollbar, ScrollbarOrientation,
+    ScrollbarState, Table, TableState,
 };
 use ratatui::{
-    layout::{Constraint, Layout, Rect}, widgets::{Block, Paragraph},
+    layout::{Constraint, Layout, Rect}, style::{Color, Modifier, Style},
+    widgets::{Block, Borders, Paragraph},
     DefaultTerminal,
     Frame,
 };
+use std::fmt;
 
-/// Inspired from # [Ratatui] Table example
-/// |--------------------------------------------------|
-/// |<`parameter_name`>|<value>| <`parameter_name`>|<value>|
-/// |<`parameter_name`>|<value>| <`parameter_name`>|<value>|
-/// |<`parameter_name`>|<value>| <`parameter_name`>|<value>|
-/// |            |
-/// |--------------------------------------------------|
-/// \use dir arrow, enter to select,x, q, save to file /
-/// Or easier but less cool for little screens:
-/// |<`parameter_name`>|<value>|description|
-/// |<`parameter_name`>|<value>|description|
-const INFO_TEXT: &str = "(Esc) quit | (←↕→) move/change value | () select / unselect";
-
+// Updated constants with emojis
 const ITEM_HEIGHT: usize = 4;
 
-struct DataParam {
-    name: String,
-    values: Vec<String>,
-    index: usize,
+// Retro game colors - removed pink in favor of a more balanced palette
+const RETRO_PURPLE: Color = Color::Rgb(50, 50, 150); //150,50,50
+const RETRO_GREY: Color = Color::Rgb(128, 128, 128);
+const RETRO_YELLOW: Color = Color::Rgb(255, 255, 0);
+const RETRO_DARK_BLUE: Color = Color::Rgb(20, 20, 40);
+const RETRO_ORANGE: Color = Color::Rgb(255, 165, 0);
+const RETRO_BLUE: Color = Color::Rgb(0, 191, 255);
+const RETRO_GOLD: Color = Color::Rgb(212, 175, 55);
+
+// Define a generic cell value type
+enum CellValue {
+    //either text only
+    Text(String),
+    //or a list of value
+    Options {
+        values: Vec<String>,
+        index: usize,
+        index_ini: usize,
+    },
 }
 
-impl DataParam {
-    pub fn new(name: String, values: Vec<String>, index: usize) -> Self {
-        Self {
-            name,
-            values,
-            index,
+impl fmt::Display for CellValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CellValue::Text(text) => write!(f, "{text}"),
+            CellValue::Options {
+                values,
+                index,
+                index_ini,
+            } => {
+                let fallback = "Bad index".to_string();
+                let content = values.get(*index).unwrap_or(&fallback);
+                if index == index_ini {
+                    write!(f, "[ {content} ]")
+                } else {
+                    write!(f, "『 {content} 』")
+                }
+            }
         }
     }
-    fn ref_array(&self) -> [&String; 2] {
-        [&self.name, self.values.get(self.index).unwrap()]
+}
+
+impl CellValue {
+    pub fn new(text: String) -> Self {
+        Self::Text(text)
     }
-    // For later use with an edit option!
-    fn _add_value_and_select(&mut self, data: String) {
-        self.values.push(data);
-        self.index = self.values.len().saturating_sub(1);
-    }
-    fn get_selected_value(&self) -> &str {
-        match self.values.get(self.index) {
-            None => "_",
-            Some(v) => v,
+    pub fn new_with_options(values: Vec<String>, index: usize) -> Self {
+        Self::Options {
+            values,
+            index,
+            index_ini: index,
         }
     }
     fn next_value(&mut self) {
-        self.index = (self.index + 1) % self.values.len();
+        if let CellValue::Options { values, index, .. } = self {
+            *index = (*index + 1) % values.len();
+        }
     }
+
     fn previous_value(&mut self) {
-        //maths trick
-        let max = self.values.len();
-        self.index = (self.index + max.saturating_sub(1)) % max;
+        if let CellValue::Options { values, index, .. } = self {
+            let max = values.len();
+            *index = (*index + max.saturating_sub(1)) % max;
+        }
     }
 }
 
+// A row data type with only one option of changing parameter
+// (no use case for a lateral switch, to only switch a cell)
+// change all the row at all
+// Easy to adapt by having a selected cell if need
+struct RowData {
+    // The column cells inside the row
+    cells: Vec<CellValue>,
+}
+
+impl RowData {
+    pub fn new(cells: Vec<CellValue>) -> Self {
+        Self { cells }
+    }
+    fn get_cell_widths(&self) -> Vec<usize> {
+        self.cells
+            .iter()
+            .map(|cell| {
+                let s = cell.to_string().len();
+                match cell {
+                    CellValue::Options { .. } => {
+                        //Add 4 for the size of bracket added around value for option
+                        s + 4
+                    }
+                    CellValue::Text(_) => s,
+                }
+            })
+            .collect()
+    }
+    fn next_cell_value(&mut self) {
+        for c in &mut self.cells {
+            c.next_value();
+        }
+    }
+    fn previous_cell_value(&mut self) {
+        for c in &mut self.cells {
+            c.previous_value();
+        }
+    }
+}
+
+// Updated Parameters Menu to work with the new data structure
+// A table with no columns switch (no need)
 pub(crate) struct ParametersMenu {
     state: TableState,
-    items: Vec<DataParam>,
-    longest_item_by_column_lens: (u16, u16, u16, u16), // cl1, cl2, cl3, cl4
+    rows: Vec<RowData>,
+    column_widths: Vec<u16>,
     scroll_state: ScrollbarState,
-    index: usize,
-    is_one_selected: bool,
+    selected_row: usize,
+    headers: Vec<String>,
 }
 
 impl ParametersMenu {
     pub(crate) fn new() -> Self {
-        let data_vec = vec![
-            DataParam::new(
-                "speed".to_string(),
-                vec!["slow".into(), "normal".into(), "fast".into()],
-                1,
-            ),
-            DataParam::new(
-                "Still Work in Progress for now ! Not usable :) ".to_string(),
-                vec!["🐢".into(), "🍥".into(), "a".into()],
-                1,
-            ),
-            DataParam::new(
-                "speedy".to_string(),
-                vec!["slow".into(), "normal".into(), "fast".into()],
-                1,
-            ),
-            DataParam::new(
-                "Another One ".to_string(),
-                vec!["🐢".into(), "🍥".into(), "a".into()],
-                0,
-            ),
+        let headers = vec![
+            "🎯 Value".to_string(),
+            "📋 Game Parameter".to_string(),
+            "📝 Description / super power".to_string(),
         ];
+
+        // Create rows with sample data
+        //TODO: Load true data !
+        let rows = vec![
+            RowData::new(vec![
+                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
+                CellValue::new("speed".to_string()),
+                CellValue::Text("TEST, WIP, THIS TABLE IS NOT WORKING YET ".to_string()),
+            ]),
+            RowData::new(vec![
+                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
+                CellValue::new("TATA".to_string()),
+                CellValue::Text("Controls how fast the game moves".to_string()),
+            ]),
+            RowData::new(vec![
+                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
+                CellValue::new("MOMO".to_string()),
+                CellValue::Text("Controls how fast the game moves".to_string()),
+            ]),
+            RowData::new(vec![
+                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
+                CellValue::new("JACKIE".to_string()),
+                CellValue::Text("Controls how fast the game moves".to_string()),
+            ]),
+        ];
+
         Self {
             state: TableState::default().with_selected(0),
-            longest_item_by_column_lens: constraint_len_calculator(&data_vec),
-            scroll_state: ScrollbarState::new((data_vec.len() - 1) * ITEM_HEIGHT),
-            index: 0,
-            items: data_vec,
-            is_one_selected: false,
+            column_widths: calculate_column_widths(&rows, &headers),
+            scroll_state: ScrollbarState::new((rows.len() - 1) * ITEM_HEIGHT),
+            selected_row: 0,
+            rows,
+            headers,
         }
     }
+
     pub fn next_row(&mut self) {
         let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
+            Some(i) => (i + 1) % self.rows.len(),
             None => 0,
         };
         self.state.select(Some(i));
+        self.selected_row = i;
         self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
     }
 
     pub fn previous_row(&mut self) {
         let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
+            Some(i) => (i + self.rows.len() - 1) % self.rows.len(),
             None => 0,
         };
         self.state.select(Some(i));
+        self.selected_row = i;
         self.scroll_state = self.scroll_state.position(i * ITEM_HEIGHT);
     }
-    pub fn next_column(&mut self) {
-        //by two, to always be
-        self.state.select_next_column();
-        self.state.select_next_column();
-    }
-    pub fn previous_column(&mut self) {
-        self.state.select_previous_column();
-        self.state.select_previous_column();
-    }
+
     pub fn next_parameter_value(&mut self) {
-        self.items.get_mut(self.index).unwrap().next_value();
+        if let Some(row) = self.rows.get_mut(self.selected_row) {
+            row.next_cell_value();
+        }
     }
 
     pub fn previous_parameter_value(&mut self) {
-        self.items.get_mut(self.index).unwrap().previous_value();
+        if let Some(row) = self.rows.get_mut(self.selected_row) {
+            row.previous_cell_value();
+        }
     }
 
     pub(crate) fn run(mut self, terminal: &mut DefaultTerminal, _options: &mut GameOptions) {
+        // TODO: do not recreate the whole graphical element everytime, but just update them
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
             if let Event::Key(key) = event::read().unwrap() {
@@ -163,14 +221,12 @@ impl ParametersMenu {
                         KeyCode::Esc => return,
                         KeyCode::Down => self.next_row(),
                         KeyCode::Up => self.previous_row(),
-                        KeyCode::Enter => {
-                            //toggle selection
-                            self.is_one_selected = !self.is_one_selected;
+                        KeyCode::Right => {
+                            self.next_parameter_value();
                         }
-                        KeyCode::Right if self.is_one_selected => self.next_parameter_value(),
-                        KeyCode::Left if self.is_one_selected => self.previous_parameter_value(),
-                        KeyCode::Right => self.next_column(),
-                        KeyCode::Left => self.previous_column(),
+                        KeyCode::Left => {
+                            self.previous_parameter_value();
+                        }
                         _ => {}
                     }
                 }
@@ -179,7 +235,12 @@ impl ParametersMenu {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let vertical = &Layout::vertical([Constraint::Min(5), Constraint::Length(4)]);
+        let vertical = &Layout::vertical([
+            Constraint::Min(1),
+            Constraint::Length(
+                u16::try_from(self.headers.len()).expect("too much headers to display"),
+            ),
+        ]);
         let rects = vertical.split(frame.area());
 
         self.render_table(frame, rects[0]);
@@ -188,77 +249,93 @@ impl ParametersMenu {
     }
 
     fn render_table(&mut self, frame: &mut Frame, area: Rect) {
-        /*let header_style = Style::default()
-            .fg(self.colors.header_fg)
-            .bg(self.colors.header_bg);
-        let selected_row_style = Style::default()
-            .add_modifier(Modifier::REVERSED)
-            .fg(self.colors.selected_row_style_fg);
-        let selected_col_style = Style::default().fg(self.colors.selected_column_style_fg);
+        // Define styles - retro gaming colors!
+        let header_style = Style::default().fg(Color::Black).bg(RETRO_GREY);
+        let selected_style = Style::default().bg(RETRO_PURPLE).fg(Color::White);
+        let even_style = Style::default().bg(Color::Black);
+        let odd_style = Style::default().bg(RETRO_DARK_BLUE);
         let selected_cell_style = Style::default()
-            .add_modifier(Modifier::REVERSED)
-            .fg(self.colors.selected_cell_style_fg);
+            .fg(RETRO_YELLOW)
+            .add_modifier(Modifier::BOLD);
 
-         */
-
-        let header = ["Name", "Value", "Name", "Value"]
-            .into_iter()
-            .map(Cell::from)
-            .collect::<Row>()
-            //.style(header_style)
+        // Create header row using the custom headers with retro styling
+        let header = Row::new(self.headers.iter().map(|h| Cell::from(h.as_str())))
+            .style(header_style)
             .height(1);
 
-        let rows = self.items.iter().enumerate().filter_map(|(i, data)| {
-            // Vérifie qu'un élément suivant existe
-            self.items.get(i + 1).map(|next| {
-                let current_cells = data
-                    .ref_array()
-                    .into_iter()
-                    .map(|content| Cell::from(Text::from(format!("\n{content}\n"))));
+        // Create rows with alternating background colors and emojis
+        let rows = self.rows.iter().enumerate().map(|(index_row, row_data)| {
+            let row_style = if index_row % 2 == 0 {
+                even_style
+            } else {
+                odd_style
+            };
 
-                let next_cells = next
-                    .ref_array()
-                    .into_iter()
-                    .map(|content| Cell::from(Text::from(format!("\n{content}\n"))));
+            let cells = row_data.cells.iter().map(|cell| {
+                let content = cell.to_string();
+                let cell_style = if self.selected_row == index_row {
+                    selected_cell_style
+                } else if let CellValue::Options {
+                    index, index_ini, ..
+                } = cell
+                {
+                    if index == index_ini {
+                        Style::default().fg(RETRO_ORANGE)
+                    } else {
+                        Style::default().fg(RETRO_YELLOW)
+                    }
+                } else {
+                    Style::default().fg(RETRO_BLUE)
+                };
 
-                // Concatène les cellules actuelles et suivantes
-                let all_cells = current_cells.chain(next_cells);
+                Cell::from(Text::from(format!("\n{content}\n"))).style(cell_style)
+            });
 
-                Row::new(all_cells).height(4)
-            })
+            Row::new(cells).style(row_style).height(4)
         });
-        let bar = " █ ";
-        let t = Table::new(
-            rows,
-            [
-                // + 1 is for padding.
-                Constraint::Length(self.longest_item_by_column_lens.0 + 1),
-                Constraint::Min(self.longest_item_by_column_lens.1 + 1),
-                Constraint::Min(self.longest_item_by_column_lens.2 + 1),
-                Constraint::Min(self.longest_item_by_column_lens.3),
-            ],
-        )
-        .header(header)
-        //.row_highlight_style(selected_row_style)
-        //.column_highlight_style(selected_col_style)
-        //.cell_highlight_style(selected_cell_style)
-        .highlight_symbol(Text::from(vec![
-            "".into(),
-            bar.into(),
-            bar.into(),
-            "".into(),
-        ]))
-        //.bg(self.colors.buffer_bg)
-        .highlight_spacing(HighlightSpacing::Always);
-        frame.render_stateful_widget(t, area, &mut self.state);
+
+        // Calculate constraints
+        let constraints = self.calculate_constraints();
+
+        // Create highlight symbols with more visual appeal
+        let highlight_symbol_left = "► ";
+        let highlight_symbol_right = " ◄";
+        let mut highlight_symbols = vec![highlight_symbol_left.into()];
+        for _ in 1..self.headers.len() - 1 {
+            highlight_symbols.push("".into());
+        }
+        highlight_symbols.push(highlight_symbol_right.into());
+
+        // Create table with retro-style borders
+        let t = Table::new(rows, constraints)
+            .header(header)
+            .row_highlight_style(selected_style)
+            .highlight_symbol(Text::from(highlight_symbols))
+            .highlight_spacing(HighlightSpacing::Always)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Double)
+                    .border_style(Style::default().fg(Color::DarkGray)),
+            );
+        //NB: could have used integrated table footer but less integrated (command related to row cell size...
+        frame.render_stateful_widget(&t, area, &mut self.state);
+        //to not consume (better), use :
+        //frame.render_stateful_widget_ref(&t, area, &mut self.state);
     }
 
     fn render_scrollbar(&mut self, frame: &mut Frame, area: Rect) {
         frame.render_stateful_widget(
             Scrollbar::default()
                 .orientation(ScrollbarOrientation::VerticalRight)
-                .begin_symbol(None)
-                .end_symbol(None),
+                .begin_symbol(Some("▲"))
+                .end_symbol(Some("▼"))
+                .track_symbol(Some("│"))
+                .thumb_symbol("█")
+                .thumb_style(Style::default().fg(Color::DarkGray))
+                .track_style(Style::default().fg(Color::Gray))
+                .begin_style(Style::default().fg(Color::Red))
+                .end_style(Style::default().fg(Color::Red)),
             area.inner(Margin {
                 vertical: 1,
                 horizontal: 1,
@@ -266,38 +343,65 @@ impl ParametersMenu {
             &mut self.scroll_state,
         );
     }
+
+    fn calculate_constraints(&self) -> Vec<Constraint> {
+        let mut constraints = vec![];
+        // A little fun with iterator, and peekable to foresee the future
+        //peekable show the next element without advancing the iterator
+        let mut iter = self.column_widths.iter().peekable();
+        //for each element, add a constraint
+        //  to have some fun with a destructuring pattern and while let
+        while let Some(&size) = iter.next() {
+            // if there is still more elements after
+            if iter.peek().is_some() {
+                constraints.push(Constraint::Length(size));
+            } else {
+                //for the last element, add all the remaining space
+                constraints.push(Constraint::Min(size + 1));
+            }
+        }
+        constraints
+    }
 }
 
 #[allow(clippy::cast_possible_truncation)]
-fn constraint_len_calculator(items: &[DataParam]) -> (u16, u16, u16, u16) {
-    let mut max: (u16, u16, u16, u16) = (0, 0, 0, 0);
-    for (i, d) in items.iter().enumerate() {
-        let current = (d.name.len(), d.get_selected_value().len());
-        if i % 2 == 0 {
-            if current.0 > max.0 as usize {
-                max.0 = current.0 as u16;
-            } else if current.1 > max.1 as usize {
-                max.1 = current.1 as u16;
+fn calculate_column_widths(rows: &[RowData], headers: &[String]) -> Vec<u16> {
+    // Initialize with header widths
+    let mut column_widths: Vec<u16> = headers.iter().map(|h| h.len() as u16).collect();
+
+    // Update with row data widths
+    for row in rows {
+        let cell_widths = row.get_cell_widths();
+        for (i, &width) in cell_widths.iter().enumerate() {
+            if i < column_widths.len() && width as u16 > column_widths[i] {
+                column_widths[i] = width as u16;
             }
-        } else if current.0 > max.2 as usize {
-            max.2 = current.0 as u16;
-        } else if current.1 > max.3 as usize {
-            max.3 = current.1 as u16;
         }
     }
-    //UnicodeWidthStr::width
-    max
+
+    column_widths
 }
+
 fn render_footer(frame: &mut Frame, area: Rect) {
-    let info_footer = Paragraph::new(INFO_TEXT)
-        /*.style(
-            Style::new()
-                .fg(self.colors.row_fg)
-                .bg(self.colors.buffer_bg),
-        )*/
-        .centered()
-        .block(
-            Block::bordered().border_type(BorderType::Double), //.border_style(Style::new().fg(self.colors.footer_border_color)),
-        );
+    // Create a multi-color, retro-styled footer
+    let info_spans = vec![
+        Span::styled(
+            "(Esc)",
+            Style::default().fg(RETRO_GOLD).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(" quit | ", Style::default().fg(Color::White)),
+        Span::styled(
+            "(↕)",
+            Style::default().fg(RETRO_GOLD).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(" move | ", Style::default().fg(Color::White)),
+        Span::styled(
+            "(← →)",
+            Style::default().fg(RETRO_GOLD).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(" change value ", Style::default().fg(Color::White)),
+    ];
+
+    let info_footer = Paragraph::new(Line::from(info_spans)).centered();
     frame.render_widget(info_footer, area);
 }

@@ -13,6 +13,26 @@ use std::cmp::PartialEq;
 use std::thread::sleep;
 use std::time::Duration;
 
+// Define the ASCII art as a constant
+const SNAKE_LOGO: &str = "\
+███████╗ ███╗   ██╗  █████╗  ██╗  ██╗ ███████╗
+██╔════╝ ████╗  ██║ ██╔══██╗ ██║ ██╔╝ ██╔════╝
+███████╗ ██╔██╗ ██║ ███████║ █████╔╝  █████╗  
+╚════██║ ██║╚██╗██║ ██╔══██║ ██╔═██╗  ██╔══╝  
+███████║ ██║ ╚████║ ██║  ██║ ██║  ██╗ ███████╗
+╚══════╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝";
+
+// Define controls table as a constant
+const CONTROLS_TABLE: &str = "\
++--------+------+------+-------+-----+-------+
+|Controls| ←↕→  |  Q   | P / ⎵ |  M  |   R   | 
++--------+------+------+-------+-----+-------+
+|Effects | Move | Quit | Pause | Menu| Start |
++--------+------+------+-------+-----+-------+";
+
+// Usage example:
+// let lines = create_greeting_lines(to_display_switch);
+
 /// Print the wanted welcome screen controls
 /// Show Fruit and Speed menus alongside
 /// Sadly `slow_blink` and `fast_blink` are not rendered anymore on modern terminal...
@@ -48,23 +68,23 @@ pub fn main_greeting_menu(
 }
 
 fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
-    let lines = vec![
-        Line::from("███████╗ ███╗   ██╗  █████╗  ██╗  ██╗ ███████╗"),
-        Line::from("██╔════╝ ████╗  ██║ ██╔══██╗ ██║ ██╔╝ ██╔════╝"),
-        Line::from("███████╗ ██╔██╗ ██║ ███████║ █████╔╝  █████╗  "),
-        Line::from("╚════██║ ██║╚██╗██║ ██╔══██║ ██╔═██╗  ██╔══╝  "),
-        Line::from("███████║ ██║ ╚████║ ██║  ██║ ██║  ██╗ ███████╗"),
-        Line::from("╚══════╝ ╚══════╝╚═ ╝  ╚═══╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝"),
-        Line::from(get_button_span(to_display_switch)),
-        Line::from("+--------+------+------+-------+-----+-------+"),
-        Line::from("|Controls| ←↕→  |  Q   | P / ⎵ |  M  |   R   | "),
-        Line::from("+--------+------+------+-------+-----+-------+"),
-        Line::from("|Effects | Move | Quit | Pause | Menu| Start |"),
-        Line::from("+--------+------+------+-------+-----+-------+"),
-        Line::from("Have a good 🐍 game ! 🎮".green()),
-    ];
-    let nb_lines = lines.len();
+    let mut lines = vec![];
+    // Add logo lines
+    for logo_line in SNAKE_LOGO.lines() {
+        lines.push(Line::from(logo_line));
+    }
 
+    // Add navigation buttons
+    lines.push(Line::from(get_button_span(to_display_switch)));
+
+    // Add controls table
+    for table_line in CONTROLS_TABLE.lines() {
+        lines.push(Line::from(table_line));
+    }
+
+    // Add greeting message
+    lines.push(Line::from("Have a good 🐍 game ! 🎮".green()));
+    let nb_lines = lines.len();
     frame.render_widget(
         //centered horizontally
         Paragraph::new(Text::from(lines)).centered(),
