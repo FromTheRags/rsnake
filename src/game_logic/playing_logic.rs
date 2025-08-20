@@ -83,8 +83,9 @@ pub fn playing_logic_loop(
 }
 /// The control part of the main menu
 /// allows switching to a submenu (Fruits, Speed, Parameters etc.)
-///
-/// # Return true if the player wants to play, false otherwise
+/// Use `GreetingMenuInput` to known which keys has been used
+/// and `GreetingSimpleDisplay` to display an easy menu, without input control (all except run and parameters)
+/// Return true if the player wants to play, false otherwise
 ///
 /// # Panics                                                                                              
 /// if Terminal writing is not possible
@@ -95,16 +96,23 @@ pub fn controls_main_switch_menu(
     let mut to_display_menu = GreetingSimpleDisplay::MainMenu;
     // To manage keys to switch the selected item
     let mut selected = 3;
+    let parameters_setup =
+        |terminal: &mut DefaultTerminal,
+         options: &mut GameOptions,
+         selected: &mut usize,
+         to_display_menu: &mut GreetingSimpleDisplay| {
+            //call Parameters screen and input management with the game options to modify
+            ParametersMenu::new(options).run(terminal);
+            // come back to default menu display
+            *selected = 3;
+            *to_display_menu = GreetingSimpleDisplay::MainMenu;
+        };
     //first display
     main_greeting_menu(terminal, &to_display_menu, &Run);
     loop {
         match greeting_screen_manage_input() {
             Some(GreetingMenuInput::Parameters) => {
-                //call Parameters screen and input management with the game options to modify
-                ParametersMenu::new().run(terminal, options);
-                // come back to default menu display
-                selected = 3;
-                to_display_menu = GreetingSimpleDisplay::MainMenu;
+                parameters_setup(terminal, options, &mut selected, &mut to_display_menu);
             }
             Some(GreetingMenuInput::Next) => {
                 selected = (selected + 1) % SWITCH_MENUS_OPTION.len();
@@ -115,17 +123,14 @@ pub fn controls_main_switch_menu(
             //NB: selection can be done by selecting ENTER on a menu entry or using a key shortcut
             // that why there is GreetingMenuInput::<option> directly alongside an enter option
             Some(GreetingMenuInput::Enter) => {
+                //for common options
                 to_display_menu =
                     GreetingSimpleDisplay::from(SWITCH_MENUS_OPTION[selected].clone());
                 if SWITCH_MENUS_OPTION[selected] == Run {
                     //start the game
                     return true;
                 } else if SWITCH_MENUS_OPTION[selected] == Parameters {
-                    //call Parameters screen and input management with the game options to modify
-                    ParametersMenu::new().run(terminal, options);
-                    // come back to default menu display
-                    selected = 3;
-                    to_display_menu = GreetingSimpleDisplay::MainMenu;
+                    parameters_setup(terminal, options, &mut selected, &mut to_display_menu);
                 }
             }
             Some(GreetingMenuInput::QuitGame) => {

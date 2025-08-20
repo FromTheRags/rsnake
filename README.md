@@ -26,8 +26,6 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 - [ ] Add some performance log with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
 - [ ] Show game options in the menu, and visually change them
-- [ ] Enhance fruits eaten detection and grid management with multiple emojis as body
-- [ ] Manage mouse/touchscreen mouvement to control the snake
 - [ ] Internal code: Provide a macro exemple for trait implementation widget and this error use.
 
 ## 💖 Support

@@ -1,11 +1,12 @@
-use crate::game_logic::game_options::GameOptions;
+use crate::game_logic::game_options::{GameOptions, ONLY_FOR_CLI_PARAMETERS};
+use clap::CommandFactory;
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::layout::Margin;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{
-    BorderType, Cell, HighlightSpacing, Row, Scrollbar, ScrollbarOrientation,
-    ScrollbarState, Table, TableState,
+    BorderType, Cell, HighlightSpacing, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    Table, TableState,
 };
 use ratatui::{
     layout::{Constraint, Layout, Rect}, style::{Color, Modifier, Style},
@@ -102,7 +103,11 @@ impl RowData {
         self.cells
             .iter()
             .map(|cell| {
-                let s = cell.to_string().len();
+                //We considers that table content never end with '\n' only used for wrapping
+                let s = cell
+                    .to_string()
+                    .chars()
+                    .fold(0, |acc, c| if c == '\n' { 0 } else { acc + 1 });
                 match cell {
                     CellValue::Options { .. } => {
                         //Add 4 for the size of bracket added around value for option
@@ -127,48 +132,88 @@ impl RowData {
 
 // Updated Parameters Menu to work with the new data structure
 // A table with no columns switch (no need)
-pub(crate) struct ParametersMenu {
+pub(crate) struct ParametersMenu<'a> {
     state: TableState,
     rows: Vec<RowData>,
     column_widths: Vec<u16>,
     scroll_state: ScrollbarState,
     selected_row: usize,
     headers: Vec<String>,
+    game_options: &'a GameOptions,
+}
+fn parse_interval(interval_str: &str) -> Option<(usize, usize)> {
+    let cleaned = interval_str
+        .split('[')
+        .last()
+        .unwrap_or("")
+        .trim_end_matches(']');
+    let mut parts = cleaned.split('-');
+
+    let min_str = parts.next()?;
+    let max_str = parts.next()?;
+
+    let min = min_str.parse::<usize>().ok()?;
+    let max = max_str.parse::<usize>().ok()?;
+
+    Some((min, max))
 }
 
-impl ParametersMenu {
-    pub(crate) fn new() -> Self {
+impl<'a> ParametersMenu<'a> {
+    pub(crate) fn new(options: &'a mut GameOptions) -> Self {
         let headers = vec![
             "🎯 Value".to_string(),
-            "📋 Game Parameter".to_string(),
+            "📋 Parameter".to_string(),
             "📝 Description / super power".to_string(),
         ];
 
         // Create rows with sample data
         //TODO: Load true data !
-        let rows = vec![
-            RowData::new(vec![
-                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
-                CellValue::new("speed".to_string()),
-                CellValue::Text("TEST, WIP, THIS TABLE IS NOT WORKING YET ".to_string()),
-            ]),
-            RowData::new(vec![
-                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
-                CellValue::new("TATA".to_string()),
-                CellValue::Text("Controls how fast the game moves".to_string()),
-            ]),
-            RowData::new(vec![
-                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
-                CellValue::new("MOMO".to_string()),
-                CellValue::Text("Controls how fast the game moves".to_string()),
-            ]),
-            RowData::new(vec![
-                CellValue::new_with_options(vec!["slow".into(), "normal".into(), "fast".into()], 0),
-                CellValue::new("JACKIE".to_string()),
-                CellValue::Text("Controls how fast the game moves".to_string()),
-            ]),
-        ];
+        let cmd = GameOptions::command();
+        let mut rows = vec![];
+        let mut option_value;
+        for arg in cmd
+            .get_arguments()
+            .filter(|arg| !ONLY_FOR_CLI_PARAMETERS.contains(&arg.get_long().unwrap()))
+        {
+            let mut values = vec![
+                arg.get_default_values()
+                    .first()
+                    .unwrap()
+                    .to_string_lossy()
+                    .to_string(),
+            ];
 
+            // if let Some((min, max)) = parse_interval(&arg.get_help().unwrap().to_string()) {
+            //  values.extend((min..max).map(|i| i.to_string()));
+            //}
+            //For booleans and enums, use clap functionalities to get possible values
+            let pv = arg.get_possible_values();
+            if pv.is_empty() {
+                /// Yet TODO 
+                //for range
+                // In Clap 4.x, ValueParser needs to be accessed and handled differently
+                /* if let Ok(Some(vp)) = arg.get_value_parser().
+                    .as_any()
+                    .downcast_ref::<clap::builder::RangedU64ValueParser>()
+                    .map(|parser| parser.get_range())
+                {
+                    let min = vp.start().unwrap_or(0);
+                    let max = vp.end().unwrap_or(100);
+                    // Convert u64 range to usize and add some sample values
+                    for val in [min, max, (min + max) / 2].iter().map(|&v| v as usize) {
+                        values.push(val.to_string());
+                    }
+                }*/
+            } else {
+                values.extend(pv.into_iter().map(|v| v.get_name().to_string()));
+            }
+            option_value = CellValue::new_with_options(values.clone(), 0);
+            rows.push(RowData::new(vec![
+                option_value,
+                CellValue::new(arg.get_long().unwrap().to_string()),
+                CellValue::new(arg.get_help().unwrap().to_string()),
+            ]));
+        }
         Self {
             state: TableState::default().with_selected(0),
             column_widths: calculate_column_widths(&rows, &headers),
@@ -176,6 +221,7 @@ impl ParametersMenu {
             selected_row: 0,
             rows,
             headers,
+            game_options: options,
         }
     }
 
@@ -211,7 +257,7 @@ impl ParametersMenu {
         }
     }
 
-    pub(crate) fn run(mut self, terminal: &mut DefaultTerminal, _options: &mut GameOptions) {
+    pub(crate) fn run(&mut self, terminal: &mut DefaultTerminal) {
         // TODO: do not recreate the whole graphical element everytime, but just update them
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
@@ -357,7 +403,7 @@ impl ParametersMenu {
                 constraints.push(Constraint::Length(size));
             } else {
                 //for the last element, add all the remaining space
-                constraints.push(Constraint::Min(size + 1));
+                constraints.push(Constraint::Length(size + 1));
             }
         }
         constraints
@@ -367,7 +413,7 @@ impl ParametersMenu {
 #[allow(clippy::cast_possible_truncation)]
 fn calculate_column_widths(rows: &[RowData], headers: &[String]) -> Vec<u16> {
     // Initialize with header widths
-    let mut column_widths: Vec<u16> = headers.iter().map(|h| h.len() as u16).collect();
+    let mut column_widths: Vec<u16> = headers.iter().map(|h| h.chars().count() as u16).collect();
 
     // Update with row data widths
     for row in rows {

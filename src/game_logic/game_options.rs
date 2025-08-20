@@ -6,9 +6,12 @@ use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
 use std::path::Path;
+use unicode_segmentation::UnicodeSegmentation;
 /// Initial position of the snake's head at the start of the game
 const INI_POSITION: Position = Position { x: 50, y: 5 };
 pub const SAVE_FILE: &str = "snake_config.toml";
+//Options to not display in the table menu in-game parameters
+pub const ONLY_FOR_CLI_PARAMETERS: [&str; 2] = ["save", "load"];
 #[allow(clippy::needless_raw_string_hashes)]
 const PARAMS_HEADER: &str = r#"
 # Snake Game Configuration
@@ -23,6 +26,12 @@ const PARAMS_HEADER: &str = r#"
 # speed:            speed of the snake (Slow, Normal, Fast, Tremendous)
 # save/load:        save/load game parameters to/from file, not very useful from a file, but useful from the CLI
 "#;
+pub const MIN_SNAKE_LENGTH: u16 = 1;
+pub const MAX_SNAKE_LENGTH: u16 = 999;
+pub const MIN_LIFE: u16 = 1;
+pub const MAX_LIFE: u16 = 999;
+pub const MIN_FRUIT_COUNT: u16 = 1;
+pub const MAX_FRUIT_COUNT: u16 = 9999;
 /// Structure holding all the configuration parameters for the game
 #[derive(Parser, Serialize, Deserialize, Debug, Clone)]
 #[serde(default)]
@@ -35,7 +44,7 @@ const PARAMS_HEADER: &str = r#"
     "\nBuilt with Rust ", env!("CARGO_PKG_RUST_VERSION")),
     about = concat!("v", env!("CARGO_PKG_VERSION"), " by ", env!("CARGO_PKG_AUTHORS"),
     "\nSnake Game in terminal with CLI arguments.\nQuick custom run: cargo run -- -z 👾 -b 🪽 -l 10 "),
-    long_about = concat!("v", env!("CARGO_PKG_VERSION"), " by ", env!("CARGO_PKG_AUTHORS"),"\n",
+    long_about = concat!("v", env!("CARGO_PKG_VERSION"), " by ", env!("CARGO_PKG_AUTHORS"), "\n",
     env!("CARGO_PKG_DESCRIPTION"), " where you can configure the velocity, \
     snake appearance, and more using command-line arguments.\nExample for asian vibes: rsnake -z 🐼 -b 🍥")
 )]
@@ -61,22 +70,35 @@ pub struct GameOptions {
         short = 'z',
         long,
         default_value = "🎄",
-        help = "Symbol used to represent the snake's head. Cool symbol as 😁🤠🤡🥳🥸👺👹👽\
-        👾🐼🐉🐍🦀🐳     .
-        Do not use one emoji displaying on multiple chars as it will badly be rendered, but multiple characters and classic are allowed as:
-        -z ZZ -b aa"
+        help = "Symbol used to represent the snake's head.\nHint:😁🤠🤡🥳🥸👺👹👽\
+        👾🐼🐉🐍🦀🐳     .\n
+        /!\\ emoji displaying on multiple chars could be badly rendered/unplayable",
+        value_parser = |s: &str| -> Result<String, String>{
+            if s.graphemes(true).count() != 1 {
+                return Err(String::from("Head symbol must be exactly one character"));
+            }
+            Ok(s.to_string())
+        }
     )]
     pub head_symbol: String,
 
     /// Snake trail symbol (emoji or character)
+    /// need to operate over graphene not chars
+    /// see <https://crates.io/crates/unicode-segmentation/> /
+    /// Or deep explanation:<https://docs.rs/bstr/1.12.0/bstr/#when-should-i-use-byte-strings>
     #[arg(
         short,
         long,
         default_value = "❄️",
-        help = "Symbol used to represent the snake's body/trail. Cool symbol as 🍁😋🥑🐾🐢🦎🪽🐥\
-        🐣♡🦠🦴👣🍥🥮🍪🍩🧊🏴🧨🦑🐟     . 
-        Do not use one emoji displaying on multiple chars as it will badly be rendered, but multiple characters are allowed as: -z 🐳 -b 👽-🦴.
-        Be careful, because of unicode width, not all combinaison are playable depending of your font/terminal"
+        help = "Symbol used to represent the snake's body/trail.\nHint:🍁😋🥑🐾🐢🦎🪽🐥\
+        🐣 ♡ 🦠🦴👣🍥🥮🍪🍩🧊🏴🧨🦑🐟     .\n
+        /!\\ emoji displaying on multiple chars could be badly rendered/unplayable",
+        value_parser = |s: &str| -> Result<String, String>{
+            if s.graphemes(true).count() != 1 {
+                return Err(String::from("Head symbol must be exactly one character"));
+            }
+            Ok(s.to_string())
+        }
     )]
     pub body_symbol: String,
 
@@ -85,7 +107,8 @@ pub struct GameOptions {
         short = 'n',
         long,
         default_value_t = 10,
-        help = "Defines the initial length of the snake [1-999]"
+        value_parser = clap::value_parser!(u16).range(MIN_SNAKE_LENGTH as i64..=MAX_SNAKE_LENGTH as i64),
+        help = format!("Defines the initial length of the snake [{MIN_SNAKE_LENGTH}-{MAX_SNAKE_LENGTH}]")
     )]
     pub snake_length: u16,
 
@@ -94,7 +117,8 @@ pub struct GameOptions {
         short,
         long,
         default_value_t = 3,
-        help = "Defines the initial number of lives for the player.[1-9999]"
+        value_parser = clap::value_parser!(u16).range(MIN_LIFE as i64..=MAX_LIFE as i64),
+        help = format!("Defines the initial number of lives for the player [{MIN_LIFE}-{MAX_LIFE}]")
     )]
     pub life: u16,
 
@@ -103,7 +127,8 @@ pub struct GameOptions {
         short = 'f',
         long,
         default_value_t = 5,
-        help = "Defines the number of fruits available in the game_logic at once.[1-10000]"
+        value_parser = clap::value_parser!(u16).range(MIN_FRUIT_COUNT as i64..=MAX_FRUIT_COUNT as i64),
+        help = format!("Defines the number of fruits available at once [{MIN_FRUIT_COUNT}-{MAX_FRUIT_COUNT}]")
     )]
     pub nb_of_fruit: u16,
 
@@ -112,18 +137,20 @@ pub struct GameOptions {
         short,
         long,
         default_value_t = false,
-        help = "Set to uncaps default FPS limit (by default limit 60 FPS)"
+        help = "Set to uncaps default FPS limit (by default max 60 FPS)"
     )]
     pub uncaps_fps: bool,
     /// Classic game with only growing snake
     #[arg(
         long,
         default_value_t = false,
-        help = "Classic game_logic with only growing snake, so fruits with negative size effect will have no size effect"
+        help = "Classic logic with only growing snake no cut-size-fruit"
     )]
     pub classic_mode: bool,
     /// Save game parameters
+    /// TODO: replace with preset 1..7
     /// NB: if one-day use with a user filename, add a clap argument for autocompletion: `value_hint` = `clap::ValueHint::FilePath`
+    /// Better use preset for a game
     #[arg(
         long,
         default_value_t = false,
@@ -191,8 +218,9 @@ impl GameOptions {
     }
     // In real Life, we will validate data more thoroughly
     pub fn validate_and_adapt(&mut self) {
-        self.nb_of_fruit = self.nb_of_fruit.clamp(1, 9999);
+        //Already done by value parser now
+        /*self.nb_of_fruit = self.nb_of_fruit.clamp(1, 9999);
         self.life = self.life.clamp(1, 9999);
-        self.snake_length = self.snake_length.clamp(1, 999);
+        self.snake_length = self.snake_length.clamp(1, 999);*/
     }
 }
