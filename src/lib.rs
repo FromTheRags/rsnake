@@ -46,9 +46,9 @@ use game_logic::game_options::GameOptions;
 /// # Panics
 /// If bad characters (invalid size) are provided for snake body or head
 pub fn start_snake() {
-    // get command line options and parsed them to check for errors
+    // get command line options and parsed them to check for errors (auto using value parser in clap)
     let mut args = GameOptions::parse();
-    args.validate_and_adapt();
+    //println!("{}", args.to_structured_toml());
     //load or save as wished, for the easiest use hard-coded path,as people using it will not like cli
     if args.save {
         args.save_to_toml(game_logic::game_options::SAVE_FILE)

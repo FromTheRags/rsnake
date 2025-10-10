@@ -9,7 +9,11 @@
 //! - `selectable_item`: Provides a generic selectable list widget.
 //! - `status`: Contains UI elements for different game states (pause, game over, etc.).
 
+pub mod customized_retro_parameter_with_cli;
+/// A as generic as possible table for parameter implementation, data are loaded in `parameter_helper`,
+/// as long as (control, apply : wip (take a &mut self ) and footer
+pub mod generic_retro_parameter_logic;
+pub mod generic_retro_parameter_style;
 pub mod greeting;
-pub mod parameters;
 pub mod status;
 pub mod utils_layout;

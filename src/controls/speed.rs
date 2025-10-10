@@ -62,9 +62,9 @@ const FAST_CONFIG: SpeedConfig = SpeedConfig {
     symbol: "🐉",
 };
 
-const TREMENDOUS_CONFIG: SpeedConfig = SpeedConfig {
+const CRAZY_CONFIG: SpeedConfig = SpeedConfig {
     ms_value: 80,
-    name: "Tremendous",
+    name: "Crazy",
     score_modifier: 4,
     symbol: "🦖",
 };
@@ -76,7 +76,7 @@ pub enum Speed {
     #[default]
     Normal,
     Fast,
-    Tremendous,
+    Crazy,
 }
 
 impl Speed {
@@ -87,7 +87,7 @@ impl Speed {
             Speed::Slow => &SLOW_CONFIG,
             Speed::Normal => &NORMAL_CONFIG,
             Speed::Fast => &FAST_CONFIG,
-            Speed::Tremendous => &TREMENDOUS_CONFIG,
+            Speed::Crazy => &CRAZY_CONFIG,
         }
     }
 
@@ -120,6 +120,6 @@ impl Speed {
 Useless as ValueEnum derive does the same (for Clap initially but can be reused elsewhere)
 #[must_use]
 pub fn iter_speed_variants() -> Vec<Speed> {
-    vec![Speed::Slow, Speed::Normal, Speed::Fast, Speed::Tremendous]
+    vec![Speed::Slow, Speed::Normal, Speed::Fast, Speed::Crazy]
 }
 */

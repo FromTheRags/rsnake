@@ -4,8 +4,11 @@ use crate::game_logic::fruits_manager::FruitsManager;
 use crate::game_logic::game_options::GameOptions;
 use crate::game_logic::playing_logic::SwitchMenu::{Fruits, Help, Main, Parameters, Run, Speed};
 use crate::game_logic::state::{GameState, GameStatus};
+use crate::graphics::menus::customized_retro_parameter_with_cli::{
+    get_footer_data, get_headers_parameters, load_parameter_in_table,
+};
+use crate::graphics::menus::generic_retro_parameter_logic::ParametersMenu;
 use crate::graphics::menus::greeting::{main_greeting_menu, GreetingSimpleDisplay, SwitchMenu};
-use crate::graphics::menus::parameters::ParametersMenu;
 use crate::graphics::sprites::fruit::Fruit;
 use crate::graphics::sprites::map::Map;
 use crate::graphics::sprites::snake_body::SnakeBody;
@@ -101,8 +104,10 @@ pub fn controls_main_switch_menu(
          options: &mut GameOptions,
          selected: &mut usize,
          to_display_menu: &mut GreetingSimpleDisplay| {
+            let header = get_headers_parameters();
+            let rows = load_parameter_in_table(options);
             //call Parameters screen and input management with the game options to modify
-            ParametersMenu::new(options).run(terminal);
+            ParametersMenu::new(options, rows, &header, get_footer_data()).run(terminal);
             // come back to default menu display
             *selected = 3;
             *to_display_menu = GreetingSimpleDisplay::MainMenu;

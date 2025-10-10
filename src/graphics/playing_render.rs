@@ -23,7 +23,7 @@ pub fn playing_render_loop<'a: 'b, 'b>(
     fruits_manager: &Arc<RwLock<FruitsManager<'a, 'b>>>,
     state: &Arc<RwLock<GameState>>,
     serpent: &Arc<RwLock<SnakeBody>>,
-    uncaps_fps: bool,
+    caps_fps: bool,
     speed_effect: (u16, &str),
     terminal: &mut DefaultTerminal,
 ) {
@@ -125,7 +125,7 @@ pub fn playing_render_loop<'a: 'b, 'b>(
         let frame_time = start_frame_time.elapsed();
         // If you want to reduce CPU usage, maintain consistent frame timing
         // If the frame generation takes longer than the target, no need to sleep (already sub 60 fps)
-        if !uncaps_fps && frame_time < target_frame_time {
+        if caps_fps && frame_time < target_frame_time {
             sleep(target_frame_time.saturating_sub(frame_time));
         }
     }

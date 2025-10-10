@@ -1,4 +1,3 @@
-
 # Snake Game Configuration
 # ---------------------------
 # classic_mode:     true for classic rules (walls kill, no wrapping)
@@ -8,7 +7,7 @@
 # body_symbol:      character for the snake's body  
 # head_symbol:      character for the snake's head
 # snake_length:     initial length of the snake
-# speed:            speed of the snake (Slow, Normal, Fast, Tremendous)
+# speed:            speed of the snake (Slow, Normal, Fast, Crazy)
 # save/load:        save/load game parameters to/from file, not very useful from a file, but useful from the CLI
 
 speed = "Normal"

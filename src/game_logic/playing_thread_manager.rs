@@ -46,7 +46,7 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
     ) -> Game<'a, 'b, 'c, 't> {
         let arc_carte = Arc::new(RwLock::new(carte));
         let life = options.life;
-        let fruits_nb = options.nb_of_fruit;
+        let fruits_nb = options.nb_of_fruits;
         let speed = options.speed;
         Game {
             options,
@@ -153,7 +153,7 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
                 &Arc::clone(&self.fruits_manager),
                 &Arc::clone(&self.state),
                 &Arc::clone(&self.serpent),
-                self.options.uncaps_fps,
+                self.options.caps_fps,
                 (self.speed.score_modifier(), self.speed.symbol()),
                 self.terminal,
             );
