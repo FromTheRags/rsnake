@@ -1,13 +1,11 @@
-use crate::game_logic::game_options::GameOptions;
-use crate::graphics::menus::customized_retro_parameter_with_cli::FooterData;
-use crate::graphics::menus::generic_retro_parameter_style::{
+use crate::graphics::menus::retro_parameter_table::customized_with_cli::FooterData;
+use crate::graphics::menus::retro_parameter_table::generic_style::{
     get_formated_footer, ScrollBarCustomRetroStyle, TableCustomRetroStyle, DISPLAY_CELL_OUT_SPACE,
     ITEM_HEIGHT,
 };
 use crate::graphics::menus::utils_layout::{
     calculate_max_column_widths, constraint_length_from_widths,
 };
-use clap::{CommandFactory, Parser};
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::widgets::FrameExt;
@@ -16,6 +14,25 @@ use ratatui::{
     DefaultTerminal,
     Frame,
 };
+
+pub trait ApplyParameter {
+    fn apply(&mut self, rows: &[RowData]);
+}
+
+#[derive(Clone)]
+pub struct ActionInputs {
+    pub key: Vec<KeyCode>,
+    pub action: TableParameterAction,
+}
+#[derive(Clone)]
+pub enum TableParameterAction {
+    NextValue,
+    PreviousValue,
+    NextRow,
+    PreviousRow,
+    //Shortcut for genericity could be a trait but no use there
+    Apply,
+}
 
 // Define a generic cell value type
 pub enum CellValue {
@@ -104,17 +121,20 @@ pub struct ParametersMenu<'a> {
     selected_row: usize,
     info_footer: Paragraph<'a>,
     vertical_layout: Layout,
-    //To be replaced by an Apply trait that GameOption will implement,
-    // that take in the flow of parameter and out a Result
-    game_options: &'a mut GameOptions,
+    //table Action, including apply to change value to whatever need (in our case the CLI struct)
+    actions: Vec<ActionInputs>,
+    //To be generic, the table can be saved to any data structure
+    saved_to: Option<&'a mut dyn ApplyParameter>,
 }
 
 impl<'a> ParametersMenu<'a> {
+    #[must_use]
     pub fn new(
-        options: &'a mut GameOptions,
         rows: Vec<RowData>,
         headers: &[String],
         info_footer: Vec<FooterData>,
+        actions: Vec<ActionInputs>,
+        saved_to: Option<&'a mut dyn ApplyParameter>,
     ) -> Self {
         // Calculate constraints
         let column_widths = calculate_max_column_widths(&rows, headers);
@@ -132,8 +152,24 @@ impl<'a> ParametersMenu<'a> {
             selected_row: 0,
             info_footer: get_formated_footer(info_footer),
             vertical_layout,
-            game_options: options,
+            actions,
+            saved_to,
         }
+    }
+    #[must_use]
+    pub fn new_with_default_action(
+        rows: Vec<RowData>,
+        headers: &[String],
+        info_footer: Vec<FooterData>,
+        saved_to: Option<&'a mut dyn ApplyParameter>,
+    ) -> Self {
+        ParametersMenu::new(
+            rows,
+            headers,
+            info_footer,
+            get_default_action_input(),
+            saved_to,
+        )
     }
 
     pub fn next_row(&mut self) {
@@ -167,70 +203,44 @@ impl<'a> ParametersMenu<'a> {
             row.previous_cell_value();
         }
     }
-    fn apply_parameters(&mut self) {
-        let command = GameOptions::command();
-        let prog_name = command.get_name().to_string();
-        let mut new_args = vec![prog_name];
-        for row in &self.table_custom.rows {
-            for cell in &row.cells {
-                if let CellValue::Options {
-                    option_name,
-                    values,
-                    index,
-                    ..
-                } = cell
-                {
-                    let value = &values[*index];
-                    match value.parse::<bool>() {
-                        Ok(bv) => {
-                            // Modern way to do CLI, two dedicated flag to set/unset the value, beginning with --no- (for false)
-                            // UX better than --feature false / --feature true, better than default (no flag = false). If you want the possibility to set both values,
-                            // as no clear default value or want to be able to easily programmatically change the value (as there)
-                            // or to have a default at true
-                            let bv_name: String = if bv {
-                                option_name.clone()
-                            } else {
-                                option_name.replace("--", "--no-")
-                            };
-                            new_args.push(bv_name);
-                        }
-                        Err(_) => {
-                            //not a boolean value
-                            new_args.extend([option_name.clone(), value.clone()]);
-                        }
-                    }
-                }
-            }
-        }
-        // Update all the game options as a reparsing (only one way to update value to check).
-        // Some debate over the utility of this feature for clap, but widely used to update from env / configuration
-        //  Allows keeping the struct for cli parameter as a model object, feeding it with different stream of data.
-        // The backup solution is to serialize the current value in TOML and load them in game_options as already done for the file saving
-        // (safe as constraints in-game value)
-        self.game_options.update_from(new_args);
-    }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) {
         // TODO: do not recreate the whole graphical element everytime, but just update them
         // in draw, keep table as a parameter of ParameterMenu (alongside TableState, just change the style of the current selected row), same for footer)
+        let actions = self.actions.clone();
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
             if let Event::Key(key) = event::read().unwrap() {
                 if key.kind == KeyEventKind::Press {
-                    match key.code {
-                        KeyCode::Esc => {
-                            self.apply_parameters();
-                            return;
+                    for action in &actions {
+                        for key_code in &action.key {
+                            if key_code == &key.code {
+                                match action.action {
+                                    TableParameterAction::NextValue => {
+                                        self.next_parameter_value();
+                                    }
+                                    TableParameterAction::PreviousValue => {
+                                        self.previous_parameter_value();
+                                    }
+                                    TableParameterAction::NextRow => {
+                                        self.next_row();
+                                    }
+                                    TableParameterAction::PreviousRow => {
+                                        self.previous_row();
+                                    }
+                                    TableParameterAction::Apply => {
+                                        if let Some(s) = &mut self.saved_to {
+                                            s.apply(&self.table_custom.rows);
+                                        } else {
+                                            panic!(
+                                                "No data structure provided to save the table to ! "
+                                            )
+                                        }
+                                        return;
+                                    }
+                                }
+                            }
                         }
-                        KeyCode::Down => self.next_row(),
-                        KeyCode::Up => self.previous_row(),
-                        KeyCode::Right => {
-                            self.next_parameter_value();
-                        }
-                        KeyCode::Left => {
-                            self.previous_parameter_value();
-                        }
-                        _ => {}
                     }
                 }
             }
@@ -254,4 +264,26 @@ impl<'a> ParametersMenu<'a> {
         );
         frame.render_widget_ref(&self.info_footer, rects[1]);
     }
+}
+
+#[must_use]
+pub fn get_default_action_input() -> Vec<ActionInputs> {
+    vec![
+        ActionInputs {
+            key: vec![KeyCode::Down, KeyCode::Char('s')],
+            action: TableParameterAction::NextRow,
+        },
+        ActionInputs {
+            key: vec![KeyCode::Up, KeyCode::Char('z')],
+            action: TableParameterAction::PreviousRow,
+        },
+        ActionInputs {
+            key: vec![KeyCode::Right, KeyCode::Char('d')],
+            action: TableParameterAction::NextValue,
+        },
+        ActionInputs {
+            key: vec![KeyCode::Left, KeyCode::Char('q')],
+            action: TableParameterAction::PreviousValue,
+        },
+    ]
 }

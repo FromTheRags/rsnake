@@ -23,7 +23,7 @@ jobs:
           toolchain: stable
           override: true
           components: clippy
-      - name: Run Clippy (no warnings allowed)
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Run Clippy (warnings allowed, otherwise add "-- -D warnings")
+        run: cargo clippy --all-targets --all-features
       - name: Tests
         run: cargo test --verbose

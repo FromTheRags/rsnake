@@ -1,4 +1,4 @@
-use crate::graphics::menus::generic_retro_parameter_logic::RowData;
+use crate::graphics::menus::retro_parameter_table::generic_logic::RowData;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, Paragraph};

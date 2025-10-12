@@ -5,6 +5,7 @@
 [![Build](https://github.com/FromTheRags/rsnake/actions/workflows/rust.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/rust.yml)
 [![Test](https://github.com/FromTheRags/rsnake/actions/workflows/test.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/test.yml)
 [![Last doc](https://img.shields.io/badge/docs-online-blue)](https://fromtherags.github.io/rsnake/rsnaker/index.html)
+[![Code lines](https://tokei.rs/b1/github/FromTheRags/rsnake)](https://github.com/FromTheRags/rsnake)
 
 # Snake Game using Ratatui
 
@@ -25,14 +26,15 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 - [ ] Add a save score (local db) with a pseudo got from cmdline
 - [ ] Add some performance log with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
-- [ ] Show game options in the menu, and visually change them
+- [x] Show game options in the menu, and visually change them
+- [ ] Enhance all table parameters based on generic one
 - [ ] Internal code: Provide a macro exemple for trait implementation widget and this error use.
 
 ## 💖 Support
 
-- If you like this game and want to contribute to more amazing features, consider giving me a coffee
-  on [kofi](https://ko-fi.com/retrosnake)
-  🥤to support development.
+- 🥤If you like this game and want to contribute to more amazing features, consider giving me a coffee to support
+  development:
+  [![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Me-ff5f5f?logo=kofi&logoColor=white)](https://ko-fi.com/retrosnake)
 
 ## Run Game options
 

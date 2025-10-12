@@ -1,12 +1,18 @@
+use crate::controls::speed::Speed;
 use crate::graphics::graphic_block::Position;
-use clap::ArgAction;
+use crate::graphics::menus::retro_parameter_table::generic_logic::{
+    ApplyParameter, CellValue, RowData,
+};
 use clap::Parser;
+use clap::{ArgAction, CommandFactory};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
 use std::iter::Iterator;
+use std::ops::RangeInclusive;
 use std::path::Path;
+use toml::Table;
 use unicode_segmentation::UnicodeSegmentation;
 /// Initial position of the snake's head at the start of the game
 pub const INI_POSITION: Position = Position { x: 50, y: 5 };
@@ -313,10 +319,6 @@ impl GameOptions {
     }
 }
 
-use crate::controls::speed::Speed;
-use std::ops::RangeInclusive;
-use toml::Table;
-
 fn pretty_range(r: RangeInclusive<u16>) -> String {
     format!("[{}-{}]", r.start(), r.end()).to_string()
 }
@@ -326,4 +328,49 @@ fn default_true() -> bool {
 }
 fn default_false() -> bool {
     false
+}
+
+impl ApplyParameter for GameOptions {
+    fn apply(&mut self, rows: &[RowData]) {
+        let command = GameOptions::command();
+        let prog_name = command.get_name().to_string();
+        let mut new_args = vec![prog_name];
+        for row in rows {
+            for cell in &row.cells {
+                if let CellValue::Options {
+                    option_name,
+                    values,
+                    index,
+                    ..
+                } = cell
+                {
+                    let value = &values[*index];
+                    match value.parse::<bool>() {
+                        Ok(bv) => {
+                            // Modern way to do CLI, two dedicated flag to set/unset the value, beginning with --no- (for false)
+                            // UX better than --feature false / --feature true, better than default (no flag = false). If you want the possibility to set both values,
+                            // as no clear default value or want to be able to easily programmatically change the value (as there)
+                            // or to have a default at true
+                            let bv_name: String = if bv {
+                                option_name.clone()
+                            } else {
+                                option_name.replace("--", "--no-")
+                            };
+                            new_args.push(bv_name);
+                        }
+                        Err(_) => {
+                            //not a boolean value
+                            new_args.extend([option_name.clone(), value.clone()]);
+                        }
+                    }
+                }
+            }
+        }
+        // Update all the game options as a reparsing (only one way to update value to check).
+        // Some debate over the utility of this feature for clap, but widely used to update from env / configuration
+        //  Allows keeping the struct for cli parameter as a model object, feeding it with different stream of data.
+        // The backup solution is to serialize the current value in TOML and load them in game_options as already done for the file saving
+        // (safe as constraints in-game value)
+        self.update_from(new_args);
+    }
 }

@@ -1,5 +1,5 @@
-use crate::graphics::menus::customized_retro_parameter_with_cli::FooterData;
-use crate::graphics::menus::generic_retro_parameter_logic::{CellValue, RowData};
+use crate::graphics::menus::retro_parameter_table::customized_with_cli::FooterData;
+use crate::graphics::menus::retro_parameter_table::generic_logic::{CellValue, RowData};
 use ratatui::layout::{Constraint, Margin, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Text};
 use ratatui::widgets::{

@@ -1,6 +1,9 @@
 use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
-use crate::graphics::menus::generic_retro_parameter_logic::{CellValue, RowData};
+use crate::graphics::menus::retro_parameter_table::generic_logic::{
+    get_default_action_input, ActionInputs, CellValue, RowData, TableParameterAction,
+};
 use clap::CommandFactory;
+use crossterm::event::KeyCode;
 
 #[must_use]
 pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
@@ -19,8 +22,9 @@ pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
             if let Some(range) = get_parameter_range(arg.get_long().unwrap()) {
                 values.extend(range.map(|i| i.to_string()));
             } else {
-                // If we are on Emoji String (the only no boolean, no range, no enum type there), if any other I would
-                // have created a possible_value macro for each arguments: use the emoji vector to get them:
+                // If we are on Emoji String (the only no boolean, no range, no enum type there),
+                // if any other I have created a possible_value macro for each argument:
+                // use the emoji vector to get them:
                 values.extend(GameOptions::emojis_iterator());
             }
         } else {
@@ -46,10 +50,7 @@ pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
         }
         //index = values.iter().position(|v| v == &default_str).unwrap_or(0);
         let arg_name = "--".to_string() + arg.get_long().unwrap();
-        arg_value =
-            crate::graphics::menus::generic_retro_parameter_logic::CellValue::new_with_options(
-                arg_name, values, index,
-            );
+        arg_value = CellValue::new_with_options(arg_name, values, index);
 
         rows.push(RowData::new(vec![
             arg_value,
@@ -65,6 +66,7 @@ pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
     }
     rows
 }
+#[must_use]
 pub fn get_headers_parameters() -> Vec<String> {
     vec![
         "🎯 Value".to_string(),
@@ -93,4 +95,14 @@ pub fn get_footer_data() -> Vec<FooterData> {
             text: "Change value".into(),
         },
     ]
+}
+
+#[must_use]
+pub fn get_action_inputs() -> Vec<ActionInputs> {
+    let mut v = vec![ActionInputs {
+        key: vec![KeyCode::Esc, KeyCode::Char('x')],
+        action: TableParameterAction::Apply,
+    }];
+    v.extend(get_default_action_input());
+    v
 }
