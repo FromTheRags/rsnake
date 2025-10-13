@@ -1,6 +1,6 @@
 [package]
 name = "rsnaker"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors = ["RF"]
 description = "A good old retro Snake in terminal UI"

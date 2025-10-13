@@ -10,6 +10,8 @@
 # Snake Game using Ratatui
 
 It is a terminal-based snake game using the Ratatui crate for rendering.
+![Playing Snake](demo_images/demo.svg)
+![Terminal Welcome Menu](demo_images/snake_welcome.png)
 ![Terminal Output Menu](demo_images/snake_setup.png)
 ![Terminal Output Running](demo_images/snake_running.png)
 
@@ -24,6 +26,8 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 ## TODO
 
 - [ ] Add a save score (local db) with a pseudo got from cmdline
+- [ ] Add preset for saved configuration
+- [ ] Add timers to fruits
 - [ ] Add some performance log with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
 - [x] Show game options in the menu, and visually change them
@@ -224,5 +228,8 @@ You should see emojis rendered correctly in your terminal or text editors.
 - Ratatui tutorial: <https://ratatui.rs/tutorials/hello-world/>
 - Example: <https://ratatui.rs/examples/widgets/canvas/>
 - Git over-bloated: <https://rtyley.github.io/bfg-repo-cleaner/>
+- Asciinema & SVG: <https://docs.asciinema.org> <https://github.com/marionebl/svg-term-cli>
+  With asciinema rec demo.cast && svg-term --in demo2.cast --out demo5.svg --term terminal --profile seti --width 200
+  --height 18
 
-[![Contributors](https://img.shields.io/github/contributors/fromtherags/rsnake)](https://github.com/fromtherags/rsnake/graphs/contributors)
+  [![Contributors](https://img.shields.io/github/contributors/fromtherags/rsnake)](https://github.com/fromtherags/rsnake/graphs/contributors)
