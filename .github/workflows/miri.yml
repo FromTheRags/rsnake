@@ -16,4 +16,5 @@ jobs:
           rustup override set nightly
           cargo miri setup
       - name: Test with Miri
-        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test
+        #unmanaged starting a new process
+        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test -- --skip cli_integration_test
