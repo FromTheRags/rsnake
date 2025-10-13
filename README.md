@@ -27,12 +27,11 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 - [ ] Add a save score (local db) with a pseudo got from cmdline
 - [ ] Add preset for saved configuration
-- [ ] Add timers to fruits
+- [ ] Add timers to fruits ⏲️
 - [ ] Add some performance log with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
-- [x] Show game options in the menu, and visually change them
 - [ ] Enhance all table parameters based on generic one
-- [ ] Internal code: Provide a macro exemple for trait implementation widget and this error use.
+- [ ] Internal code: Provide a macro example for trait implementation widget and this error use.
 
 ## 💖 Support
 

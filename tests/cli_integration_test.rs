@@ -5,7 +5,7 @@ use std::time::Instant;
 
 //For more generic, integration like tests
 #[test]
-fn test_cli_fails_on_invalid_velocity() {
+fn cli_integration_test_fails_on_invalid_velocity() {
     let mut cmd = Command::cargo_bin("rsnake").unwrap();
 
     cmd.arg("--speed")
@@ -29,7 +29,7 @@ fn test_cli_fails_on_invalid_velocity() {
 /// can be run locally with cargo test -- --ignored
 #[test]
 #[ignore]
-fn test_cli_runs_with_default_args() {
+fn cli_integration_test_with_default_args() {
     let now = Instant::now();
     let mut cmd = Command::cargo_bin("rsnake").unwrap(); // "snake" see in Cargo.toml [[bin]]
     cmd.arg("--speed")
