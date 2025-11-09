@@ -2,7 +2,6 @@ use crate::controls::input::GreetingMenuInput;
 use crate::controls::speed;
 use crate::controls::speed::SpeedConfig;
 use crate::graphics::menus::utils_layout::frame_vertically_centered_rect;
-use crate::graphics::sprites::fruit::FRUITS_SCORES_PROBABILITIES;
 use clap::ValueEnum;
 use ratatui::style::Stylize;
 use ratatui::style::{Color, Modifier, Style};
@@ -22,7 +21,7 @@ const SNAKE_LOGO: &str = "\
 ███████║ ██║ ╚████║ ██║  ██║ ██║  ██╗ ███████╗
 ╚══════╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝";
 
-// Define controls table as a constant
+// Define the control table as a constant
 const CONTROLS_TABLE: &str = "\
 +--------+------+------+-------+-----+-------+
 |Controls| ←↕→  |  Q   | P / ⎵ |  M  |   R   | 
@@ -49,9 +48,6 @@ pub fn main_greeting_menu(
             let area = frame.area();
             match to_display {
                 GreetingSimpleDisplay::MainMenu => big_snake_menu(frame, to_display_switch_menu),
-                GreetingSimpleDisplay::Fruits => {
-                    fruit_menu(frame, to_display_switch_menu);
-                }
                 GreetingSimpleDisplay::Velocity => {
                     speed_menu(frame, to_display_switch_menu);
                 }
@@ -77,45 +73,17 @@ fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
     // Add navigation buttons
     lines.push(Line::from(get_button_span(to_display_switch)));
 
-    // Add controls table
+    // Add the control table
     for table_line in CONTROLS_TABLE.lines() {
         lines.push(Line::from(table_line));
     }
 
-    // Add greeting message
+    // Add a greeting message
     lines.push(Line::from("Have a good 🐍 game ! 🎮".green()));
     let nb_lines = lines.len();
     frame.render_widget(
         //centered horizontally
         Paragraph::new(Text::from(lines)).centered(),
-        frame_vertically_centered_rect(frame.area(), nb_lines),
-    );
-}
-/// Display the fruit menu, vertically centered
-/// NB: could have used a Table as in the parameter menu, but simple ASCII is way enough
-fn fruit_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
-    //adding fruits rules, gonna left aligned for less screen space use
-    let mut fruits_lines = Vec::new();
-    let tab_jonction = Line::from("+---------+---------------------+--------+-------------+");
-    fruits_lines.push(tab_jonction.clone());
-    fruits_lines.push(Line::from(
-        "| Fruit   | Base Score (xSpeed) | Chance | Size Effect |",
-    ));
-    fruits_lines.push(tab_jonction.clone());
-    for (fruit, score, probability, size_effect) in FRUITS_SCORES_PROBABILITIES {
-        //:<6 and so on are formating options, e.g., saying aligning left with min 6 chars
-        fruits_lines.push(Line::from(format!(
-            "| {fruit:<6} | {score:>19} | {probability:>5}% | {size_effect:>11} |"
-        )));
-    }
-    fruits_lines.push(tab_jonction);
-    fruits_lines.push(Line::from(get_button_span(to_display_switch)));
-    let nb_lines = fruits_lines.len();
-    //more idiomatic using lines (as in: https://ratatui.rs/recipes/render/display-text/)
-    //can mix style inside the same line using Line::from(vec!["hello".green(),
-    // " ".into(), "world".green().bold(), "3".into()]),
-    frame.render_widget(
-        Paragraph::new(Text::from(fruits_lines)).centered(),
         frame_vertically_centered_rect(frame.area(), nb_lines),
     );
 }
@@ -270,7 +238,6 @@ fn get_button_span(selected: &SwitchMenu) -> Vec<Span<'static>> {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum GreetingSimpleDisplay {
-    Fruits,
     Velocity,
     Help,
     MainMenu,
@@ -278,13 +245,12 @@ pub enum GreetingSimpleDisplay {
 impl From<SwitchMenu> for GreetingSimpleDisplay {
     fn from(menu: SwitchMenu) -> Self {
         match menu {
-            SwitchMenu::Fruits => GreetingSimpleDisplay::Fruits,
             SwitchMenu::Speed => GreetingSimpleDisplay::Velocity,
             SwitchMenu::Help => GreetingSimpleDisplay::Help,
             // For run, we will default to MainMenu but should be treated differently
             // (to start the game) same for Parameters,
             // too complex to manage without a dedicated input manager/display
-            SwitchMenu::Parameters | SwitchMenu::Run | SwitchMenu::Main => {
+            SwitchMenu::Fruits | SwitchMenu::Parameters | SwitchMenu::Run | SwitchMenu::Main => {
                 GreetingSimpleDisplay::MainMenu
             }
         }
@@ -293,7 +259,6 @@ impl From<SwitchMenu> for GreetingSimpleDisplay {
 impl From<GreetingMenuInput> for GreetingSimpleDisplay {
     fn from(menu: GreetingMenuInput) -> Self {
         match menu {
-            GreetingMenuInput::Fruits => GreetingSimpleDisplay::Fruits,
             GreetingMenuInput::Speed => GreetingSimpleDisplay::Velocity,
             GreetingMenuInput::Help => GreetingSimpleDisplay::Help,
             _ => GreetingSimpleDisplay::MainMenu,

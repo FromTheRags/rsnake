@@ -76,8 +76,9 @@ macro_rules! define_args_with_ranges {
     };
 }
 // Define all arguments and ranges in one place
+//Snake length begins at 2 to have a head and a body different
 define_args_with_ranges! {
-    SNAKE_LENGTH: 1 => 999,
+    SNAKE_LENGTH: 2 => 999,
     LIFE: 1 => 99,
     NB_OF_FRUITS : 1 => 999,
 }

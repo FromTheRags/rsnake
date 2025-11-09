@@ -1,4 +1,3 @@
-use crate::graphics::menus::retro_parameter_table::customized_with_cli::FooterData;
 use crate::graphics::menus::retro_parameter_table::generic_style::{
     get_formated_footer, ScrollBarCustomRetroStyle, TableCustomRetroStyle, DISPLAY_CELL_OUT_SPACE,
     ITEM_HEIGHT,
@@ -14,11 +13,15 @@ use ratatui::{
     DefaultTerminal,
     Frame,
 };
+use unicode_segmentation::UnicodeSegmentation;
 
 pub trait ApplyParameter {
     fn apply(&mut self, rows: &[RowData]);
 }
-
+pub struct FooterData {
+    pub symbol: String,
+    pub text: String,
+}
 #[derive(Clone)]
 pub struct ActionInputs {
     pub key: Vec<KeyCode>,
@@ -31,7 +34,7 @@ pub enum TableParameterAction {
     NextRow,
     PreviousRow,
     //Shortcut for genericity could be a trait but no use there
-    Apply,
+    QuitAndApply,
 }
 
 // Define a generic cell value type
@@ -75,7 +78,11 @@ impl CellValue {
     fn width(&self) -> usize {
         match self {
             CellValue::Options { values, .. } => {
-                let max = values.iter().map(|v| v.chars().count()).max().unwrap_or(0);
+                let max = values
+                    .iter()
+                    .map(|v| v.as_str().graphemes(true).count())
+                    .max()
+                    .unwrap_or(0);
                 //Add 6 for the size of bracket added around value for option when displaying
                 // (hardcoded for performance rather than using format and then count chars)
                 max + DISPLAY_CELL_OUT_SPACE
@@ -86,9 +93,9 @@ impl CellValue {
     }
 }
 
-// A row data type with only one option of changing parameter
+// A row data type with only one option of changing the parameter
 // (no use case for a lateral switch, to only switch a cell).
-// Changes all the row at all
+// Changes all the rows at all
 // Easy to adapt by having a selected cell if you need
 pub struct RowData {
     // The column cells inside the row
@@ -115,7 +122,7 @@ impl RowData {
     }
 }
 //The lain struct for the parameter
-pub struct ParametersMenu<'a> {
+pub struct GenericMenu<'a> {
     table_custom: TableCustomRetroStyle<'a>,
     scrollbar: ScrollBarCustomRetroStyle<'a>,
     selected_row: usize,
@@ -127,7 +134,7 @@ pub struct ParametersMenu<'a> {
     saved_to: Option<&'a mut dyn ApplyParameter>,
 }
 
-impl<'a> ParametersMenu<'a> {
+impl<'a> GenericMenu<'a> {
     #[must_use]
     pub fn new(
         rows: Vec<RowData>,
@@ -163,7 +170,7 @@ impl<'a> ParametersMenu<'a> {
         info_footer: Vec<FooterData>,
         saved_to: Option<&'a mut dyn ApplyParameter>,
     ) -> Self {
-        ParametersMenu::new(
+        GenericMenu::new(
             rows,
             headers,
             info_footer,
@@ -205,8 +212,6 @@ impl<'a> ParametersMenu<'a> {
     }
 
     pub fn run(&mut self, terminal: &mut DefaultTerminal) {
-        // TODO: do not recreate the whole graphical element everytime, but just update them
-        // in draw, keep table as a parameter of ParameterMenu (alongside TableState, just change the style of the current selected row), same for footer)
         let actions = self.actions.clone();
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
@@ -228,13 +233,9 @@ impl<'a> ParametersMenu<'a> {
                                     TableParameterAction::PreviousRow => {
                                         self.previous_row();
                                     }
-                                    TableParameterAction::Apply => {
+                                    TableParameterAction::QuitAndApply => {
                                         if let Some(s) = &mut self.saved_to {
                                             s.apply(&self.table_custom.rows);
-                                        } else {
-                                            panic!(
-                                                "No data structure provided to save the table to ! "
-                                            )
                                         }
                                         return;
                                     }
@@ -255,8 +256,8 @@ impl<'a> ParametersMenu<'a> {
             .update_table_color_background(self.selected_row);
         self.table_custom.render(frame, rects[0]);
         //Unfortunately, scrollbar does not yet implement render_stateful_widget_ref,
-        // so we have to use old way with clone
-        //see : https://docs.rs/ratatui/latest/ratatui/widgets/trait.StatefulWidgetRef.html#implementors
+        // so we have to use the old way with clone
+        //https://docs.rs/ratatui/latest/ratatui/widgets/trait.StatefulWidgetRef.html#implementors
         frame.render_stateful_widget(
             self.scrollbar.widget.clone(),
             rects[0].inner(self.scrollbar.margin),
@@ -284,6 +285,10 @@ pub fn get_default_action_input() -> Vec<ActionInputs> {
         ActionInputs {
             key: vec![KeyCode::Left, KeyCode::Char('q')],
             action: TableParameterAction::PreviousValue,
+        },
+        ActionInputs {
+            key: vec![KeyCode::Esc, KeyCode::Char('x')],
+            action: TableParameterAction::QuitAndApply,
         },
     ]
 }

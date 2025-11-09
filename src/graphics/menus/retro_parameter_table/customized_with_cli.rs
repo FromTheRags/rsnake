@@ -1,40 +1,66 @@
 use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    get_default_action_input, ActionInputs, CellValue, RowData, TableParameterAction,
+    get_default_action_input, CellValue, FooterData, GenericMenu,
+    RowData,
 };
 use clap::CommandFactory;
-use crossterm::event::KeyCode;
+use ratatui::DefaultTerminal;
+
+pub fn setup_and_run_cli_table_parameters(
+    terminal: &mut DefaultTerminal,
+    options: &mut GameOptions,
+) {
+    // Call Parameters screen and input management with the game options to modify
+    GenericMenu::new(
+        load_parameter_cli_in_table(options),
+        &parameters_cli_get_headers(),
+        parameters_cli_get_footer_data(),
+        get_default_action_input(),
+        Some(options),
+    )
+    .run(terminal);
+}
 
 #[must_use]
-pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
+fn load_parameter_cli_in_table(options: &GameOptions) -> Vec<RowData> {
     let cmd = GameOptions::command();
     let mut rows = vec![];
     let mut arg_value;
+    //We get all the possible arguments for the game (not the ones for CLI tweaks)
+    //to have the same arguments tweakable with the in-game menu as the cli
     for arg in cmd.get_arguments().filter(|arg| {
         !ONLY_FOR_CLI_PARAMETERS
             .iter()
             .any(|arg_pattern| arg.get_long().unwrap().contains(arg_pattern))
     }) {
-        let mut values = vec![];
+        //We want all the possible values for the argument to have a selectable list of them
+        let mut all_value_for_this_arg = vec![];
         //For booleans and enums, use clap functionalities to get possible values
-        let pv = arg.get_possible_values();
-        if pv.is_empty() {
+        // get_possible_values() only works for boolean or enum
+        let pv_bool_enum = arg.get_possible_values();
+        if pv_bool_enum.is_empty() {
             if let Some(range) = get_parameter_range(arg.get_long().unwrap()) {
-                values.extend(range.map(|i| i.to_string()));
+                all_value_for_this_arg.extend(range.map(|i| i.to_string()));
             } else {
                 // If we are on Emoji String (the only no boolean, no range, no enum type there),
                 // if any other I have created a possible_value macro for each argument:
                 // use the emoji vector to get them:
-                values.extend(GameOptions::emojis_iterator());
+                all_value_for_this_arg.extend(GameOptions::emojis_iterator());
+                //Check if the user provides an existing emoji or a brand new one
+
+                add_unique_symbol(&mut all_value_for_this_arg, options.head_symbol.clone());
+                add_unique_symbol(&mut all_value_for_this_arg, options.body_symbol.clone());
             }
         } else {
             //For booleans and enums,
-            values.extend(pv.into_iter().map(|v| v.get_name().to_string()));
+            all_value_for_this_arg
+                .extend(pv_bool_enum.into_iter().map(|v| v.get_name().to_string()));
         }
         // Set default value, from current value (default auto so if not set in CLI using default,
-        // and serde default for missing serialize value for not-to-be-serialized value, for others...your fault to no provide them :p )
+        // and serde default for missing serialize value for not-to-be-serialized value,
+        // for others...your fault to no provides them :p)
         let mut index = 0;
-        //TOML crate prefers _ vs -
+        //TOML crate prefers _ vs. -
         if let Some(default_value) = options
             .to_structured_toml()
             .get(&arg.get_long().unwrap().replace('-', "_"))
@@ -46,11 +72,14 @@ pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
                     .to_string()
                     .to_lowercase();
             }
-            index = values.iter().position(|v| v == &default_str).unwrap_or(0);
+            index = all_value_for_this_arg
+                .iter()
+                .position(|v| v == &default_str)
+                .unwrap_or(0);
         }
         //index = values.iter().position(|v| v == &default_str).unwrap_or(0);
         let arg_name = "--".to_string() + arg.get_long().unwrap();
-        arg_value = CellValue::new_with_options(arg_name, values, index);
+        arg_value = CellValue::new_with_options(arg_name, all_value_for_this_arg, index);
 
         rows.push(RowData::new(vec![
             arg_value,
@@ -67,20 +96,16 @@ pub fn load_parameter_in_table(options: &GameOptions) -> Vec<RowData> {
     rows
 }
 #[must_use]
-pub fn get_headers_parameters() -> Vec<String> {
+fn parameters_cli_get_headers() -> Vec<String> {
     vec![
         "🎯 Value".to_string(),
         "📋 Parameter".to_string(),
         "📝 Description / super power".to_string(),
     ]
 }
-pub struct FooterData {
-    pub symbol: String,
-    pub text: String,
-}
 /// Should add an action to the Footer Data (like apply, move, change value)
 #[must_use]
-pub fn get_footer_data() -> Vec<FooterData> {
+fn parameters_cli_get_footer_data() -> Vec<FooterData> {
     vec![
         FooterData {
             symbol: "Esc".into(),
@@ -97,12 +122,8 @@ pub fn get_footer_data() -> Vec<FooterData> {
     ]
 }
 
-#[must_use]
-pub fn get_action_inputs() -> Vec<ActionInputs> {
-    let mut v = vec![ActionInputs {
-        key: vec![KeyCode::Esc, KeyCode::Char('x')],
-        action: TableParameterAction::Apply,
-    }];
-    v.extend(get_default_action_input());
-    v
+fn add_unique_symbol(collection: &mut Vec<String>, symbol: String) {
+    if !collection.contains(&symbol) {
+        collection.push(symbol);
+    }
 }

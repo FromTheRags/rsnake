@@ -1,5 +1,6 @@
-use crate::graphics::menus::retro_parameter_table::customized_with_cli::FooterData;
-use crate::graphics::menus::retro_parameter_table::generic_logic::{CellValue, RowData};
+use crate::graphics::menus::retro_parameter_table::generic_logic::{
+    CellValue, FooterData, RowData,
+};
 use ratatui::layout::{Constraint, Margin, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Text};
 use ratatui::widgets::{
@@ -98,7 +99,7 @@ impl<'a> TableCustomRetroStyle<'a> {
         }
         highlight_symbols.push(HIGHLIGHT_SYMBOL_RIGHT.into());
 
-        // Create table with retro-style borders
+        // Create a table with retro-style borders
         Self {
             state: TableState::default().with_selected(0),
             table: Table::new(
@@ -131,6 +132,7 @@ impl<'a> TableCustomRetroStyle<'a> {
                 } else {
                     Style::default().bg(RETRO_DARK_BLUE)
                 };
+                let mut max_lines_for_this_row: u16 = 1;
                 let cells = row_data.cells.iter().map(|cell| {
                     let content = cell.to_string();
                     let cell_style = if selected_row == index_row {
@@ -149,11 +151,18 @@ impl<'a> TableCustomRetroStyle<'a> {
                     } else {
                         Style::default().fg(RETRO_BLUE)
                     };
-
-                    Cell::from(Text::from(format!("\n{content}\n"))).style(cell_style)
+                    //useful for height calculation of the row
+                    #[allow(clippy::cast_possible_truncation)]
+                    let max = content.lines().count() as u16;
+                    if max > max_lines_for_this_row {
+                        max_lines_for_this_row = max;
+                    }
+                    Cell::from(Text::from(content.to_string())).style(cell_style)
                 });
 
-                Row::new(cells).style(row_style).height(4)
+                Row::new(cells)
+                    .style(row_style)
+                    .height(max_lines_for_this_row)
             })
             .collect::<Vec<Row<'a>>>()
     }
@@ -165,7 +174,7 @@ impl<'a> TableCustomRetroStyle<'a> {
 }
 #[must_use]
 pub fn get_formated_footer<'a>(data: Vec<FooterData>) -> Paragraph<'a> {
-    // Create a multi-color, retro-styled footer
+    // Create a multicolor, retro-styled footer
     let mut info_spans = Vec::with_capacity(data.len());
     for d in data {
         info_spans.push(Span::styled(

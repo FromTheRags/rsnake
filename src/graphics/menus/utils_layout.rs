@@ -3,6 +3,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, Paragraph};
 use ratatui::Frame;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Creates a vertically centered rectangle within the given area with the specified number of lines.
 #[must_use]
@@ -74,8 +75,11 @@ pub fn constraint_length_from_widths(column_widths: &[u16]) -> Vec<Constraint> {
 #[allow(clippy::cast_possible_truncation)]
 #[must_use]
 pub fn calculate_max_column_widths(rows: &[RowData], headers: &[String]) -> Vec<u16> {
-    // Initialize with header widths
-    let mut column_widths: Vec<u16> = headers.iter().map(|h| h.chars().count() as u16).collect();
+    // Initialize with header widths, +1 for header separator
+    let mut column_widths: Vec<u16> = headers
+        .iter()
+        .map(|h| h.as_str().graphemes(true).count() as u16 + 1)
+        .collect();
     let column_len = column_widths.len();
     // Update with row data widths
     for row in rows {

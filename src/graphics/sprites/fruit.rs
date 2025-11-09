@@ -27,6 +27,8 @@ use ratatui::widgets::WidgetRef;
 /// image, score, probability, size effect
 ///Yet pear, or strawberry ("🍓", 60, 5, 15),
 pub const FRUITS_SCORES_PROBABILITIES: &[(&str, i32, u16, i16)] = &[
+    ("🦞", -50, 5, -150),
+    ("🥥", 0, 5, -40),
     ("🍇", 5, 4, 0),
     ("🍐", 10, 10, 5),
     ("🥝", 20, 10, 8),
@@ -36,8 +38,6 @@ pub const FRUITS_SCORES_PROBABILITIES: &[(&str, i32, u16, i16)] = &[
     ("🍎", 75, 15, 15),
     ("🍓", 100, 5, 20),
     ("🍒", 200, 1, 25),
-    ("🥥", 0, 5, -40),
-    ("🦞", -50, 5, -150),
 ];
 
 /// Represents a fruit on the map.

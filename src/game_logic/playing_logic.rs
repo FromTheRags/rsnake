@@ -5,10 +5,8 @@ use crate::game_logic::game_options::GameOptions;
 use crate::game_logic::playing_logic::SwitchMenu::{Fruits, Help, Main, Parameters, Run, Speed};
 use crate::game_logic::state::{GameState, GameStatus};
 use crate::graphics::menus::greeting::{main_greeting_menu, GreetingSimpleDisplay, SwitchMenu};
-use crate::graphics::menus::retro_parameter_table::customized_with_cli::{
-    get_action_inputs, get_footer_data, get_headers_parameters, load_parameter_in_table,
-};
-use crate::graphics::menus::retro_parameter_table::generic_logic::ParametersMenu;
+use crate::graphics::menus::retro_parameter_table::customized_with_cli::setup_and_run_cli_table_parameters;
+use crate::graphics::menus::retro_parameter_table::customized_with_fruits::setup_and_run_fruits_table_parameters;
 use crate::graphics::sprites::fruit::Fruit;
 use crate::graphics::sprites::map::Map;
 use crate::graphics::sprites::snake_body::SnakeBody;
@@ -85,8 +83,8 @@ pub fn playing_logic_loop(
     }
 }
 /// The control part of the main menu
-/// allows switching to a submenu (Fruits, Speed, Parameters etc.)
-/// Use `GreetingMenuInput` to known which keys has been used
+/// allows switching to a submenu (Fruits, Speed, Parameters, etc.)
+/// Use `GreetingMenuInput` to known which keys have been used
 /// and `GreetingSimpleDisplay` to display an easy menu, without input control (all except run and parameters)
 /// Return true if the player wants to play, false otherwise
 ///
@@ -99,32 +97,20 @@ pub fn controls_main_switch_menu(
     let mut to_display_menu = GreetingSimpleDisplay::MainMenu;
     // To manage keys to switch the selected item
     let mut selected = 3;
-    let parameters_setup =
-        |terminal: &mut DefaultTerminal,
-         options: &mut GameOptions,
-         selected: &mut usize,
-         to_display_menu: &mut GreetingSimpleDisplay| {
-            let header = get_headers_parameters();
-            let rows = load_parameter_in_table(options);
-            //call Parameters screen and input management with the game options to modify
-            ParametersMenu::new(
-                rows,
-                &header,
-                get_footer_data(),
-                get_action_inputs(),
-                Some(options),
-            )
-            .run(terminal);
-            // come back to default menu display
-            *selected = 3;
-            *to_display_menu = GreetingSimpleDisplay::MainMenu;
-        };
     //first display
     main_greeting_menu(terminal, &to_display_menu, &Run);
     loop {
         match greeting_screen_manage_input() {
             Some(GreetingMenuInput::Parameters) => {
-                parameters_setup(terminal, options, &mut selected, &mut to_display_menu);
+                setup_and_run_parameters_menu(
+                    terminal,
+                    options,
+                    &mut selected,
+                    &mut to_display_menu,
+                );
+            }
+            Some(GreetingMenuInput::Fruits) => {
+                setup_and_run_parameters_fruits(terminal, &mut selected, &mut to_display_menu);
             }
             Some(GreetingMenuInput::Next) => {
                 selected = (selected + 1) % SWITCH_MENUS_OPTION.len();
@@ -142,7 +128,14 @@ pub fn controls_main_switch_menu(
                     //start the game
                     return true;
                 } else if SWITCH_MENUS_OPTION[selected] == Parameters {
-                    parameters_setup(terminal, options, &mut selected, &mut to_display_menu);
+                    setup_and_run_parameters_menu(
+                        terminal,
+                        options,
+                        &mut selected,
+                        &mut to_display_menu,
+                    );
+                } else if SWITCH_MENUS_OPTION[selected] == Fruits {
+                    setup_and_run_parameters_fruits(terminal, &mut selected, &mut to_display_menu);
                 }
             }
             Some(GreetingMenuInput::QuitGame) => {
@@ -156,4 +149,27 @@ pub fn controls_main_switch_menu(
         }
         main_greeting_menu(terminal, &to_display_menu, &SWITCH_MENUS_OPTION[selected]);
     }
+}
+
+fn setup_and_run_parameters_menu(
+    terminal: &mut DefaultTerminal,
+    options: &mut GameOptions,
+    selected: &mut usize,
+    to_display_menu: &mut GreetingSimpleDisplay,
+) {
+    setup_and_run_cli_table_parameters(terminal, options);
+    // Come back to the default menu display
+    *selected = 3;
+    *to_display_menu = GreetingSimpleDisplay::MainMenu;
+}
+
+fn setup_and_run_parameters_fruits(
+    terminal: &mut DefaultTerminal,
+    selected: &mut usize,
+    to_display_menu: &mut GreetingSimpleDisplay,
+) {
+    setup_and_run_fruits_table_parameters(terminal);
+    // Come back to the default menu display
+    *selected = 3;
+    *to_display_menu = GreetingSimpleDisplay::MainMenu;
 }
