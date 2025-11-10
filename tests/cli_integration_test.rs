@@ -26,7 +26,7 @@ fn cli_integration_test_fails_on_invalid_velocity() {
         .stderr(contains("error").and(contains("super_sonic")));
 }
 #[test]
-//#[ignore = "Fail on no TTY (as on github action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
+#[ignore = "Fail on no TTY (as on github action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
 fn cli_integration_test_working_default_args() {
     let now = Instant::now();
     let path = cargo_bin!("rsnake");
@@ -42,7 +42,7 @@ fn cli_integration_test_working_default_args() {
     );
 }
 #[test]
-//#[ignore = "Fail on no TTY (as on GitHub action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
+#[ignore = "Fail on no TTY (as on GitHub action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
 fn cli_integration_test_working_with_custom_args() {
     let now = Instant::now();
     let path = cargo_bin!("rsnake");
