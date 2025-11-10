@@ -27,9 +27,9 @@
 //!
 
 use crate::graphics::graphic_block::Position;
-use crate::graphics::sprites::fruit::{Fruit, FRUITS_SCORES_PROBABILITIES};
+use crate::graphics::sprites::fruit::{FRUITS_SCORES_PROBABILITIES, Fruit};
 use crate::graphics::sprites::map::Map;
-use rand::{rng, Rng};
+use rand::{Rng, rng};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::Widget;

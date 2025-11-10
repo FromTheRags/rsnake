@@ -1,13 +1,13 @@
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     CellValue, FooterData, RowData,
 };
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Margin, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Text};
 use ratatui::widgets::{
     Block, BorderType, Borders, Cell, FrameExt, HighlightSpacing, Paragraph, Row, Scrollbar,
     ScrollbarOrientation, ScrollbarState, Table, TableState,
 };
-use ratatui::Frame;
 use std::fmt;
 
 // Updated constants with emojis
@@ -157,7 +157,7 @@ impl<'a> TableCustomRetroStyle<'a> {
                     if max > max_lines_for_this_row {
                         max_lines_for_this_row = max;
                     }
-                    Cell::from(Text::from(content.to_string())).style(cell_style)
+                    Cell::from(Text::from(content)).style(cell_style)
                 });
 
                 Row::new(cells)

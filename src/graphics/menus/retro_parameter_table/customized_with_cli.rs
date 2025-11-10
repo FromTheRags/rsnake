@@ -1,7 +1,6 @@
-use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
+use crate::game_logic::game_options::{GameOptions, ONLY_FOR_CLI_PARAMETERS, get_parameter_range};
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    get_default_action_input, CellValue, FooterData, GenericMenu,
-    RowData,
+    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
 };
 use clap::CommandFactory;
 use ratatui::DefaultTerminal;

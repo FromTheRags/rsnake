@@ -18,14 +18,14 @@ crossterm = { version = "0.29", features = ["events"] }
 #TUI
 #see https://docs.rs/ratatui/latest/ratatui/widgets/trait.WidgetRef.html need to have better performance avoiding cloning widget each time
 #https://github.com/ratatui/ratatui/discussions/1274
-ratatui = { version = "0.30.0-alpha.5", features = ["unstable-widget-ref"] }
+ratatui = { version = "0.30.0-beta.0", features = ["unstable-widget-ref"] }
 #Use for random fruits position
 rand = "0.9"
 #Use for Cli parsing
 clap = { version = "4.5", features = ["derive"] }
 #Use for serialisation/deserialisation of game parameters
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.8"
+toml = "0.9"
 toml_edit = "0.23.4"
 #Use in macro for clap, to check input is one grapheme-long (One character)
 unicode-segmentation = "1.12.0"
@@ -33,7 +33,7 @@ unicode-segmentation = "1.12.0"
 
 #For testing cli easily
 [dev-dependencies]
-assert_cmd = { version = "2.0.17" }
+assert_cmd = { version = "2.1" }
 predicates = "3.1.3"
 
 [[bin]]

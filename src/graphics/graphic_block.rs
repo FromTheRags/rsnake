@@ -9,7 +9,6 @@ use ratatui::layout::Rect;
 use ratatui::prelude::{Span, Style};
 use ratatui::widgets::{Widget, WidgetRef};
 
-
 /// A struct representing a graphical block that can be displayed in the game logic.
 /// It holds the position and visual representation (image) of the block.
 ///

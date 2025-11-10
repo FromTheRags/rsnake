@@ -128,7 +128,7 @@ impl Map<'_> {
     /// # Returns
     /// A reference to the `Block` widget.
     #[must_use]
-    pub fn get_widget(&self) -> &Block {
+    pub fn get_widget(&self) -> &Block<'_> {
         &self.block
     }
 

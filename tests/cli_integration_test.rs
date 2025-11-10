@@ -6,8 +6,7 @@ use std::time::Instant;
 //For more generic, integration like tests
 #[test]
 fn cli_integration_test_fails_on_invalid_velocity() {
-    let mut cmd = Command::cargo_bin("rsnake").unwrap();
-
+    let mut cmd = Command::new("rsnake");
     cmd.arg("--speed")
         .arg("super_sonic") // invalide
         .arg("--life")
@@ -25,13 +24,26 @@ fn cli_integration_test_fails_on_invalid_velocity() {
         .failure()
         .stderr(contains("error").and(contains("super_sonic")));
 }
-/// Ignore as fail on no TTY (as on github action) because of raw terminal mode
-/// can be run locally with cargo test -- --ignored
 #[test]
-#[ignore]
-fn cli_integration_test_with_default_args() {
+//#[ignore = "Fail on no TTY (as on github action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
+fn cli_integration_test_working_default_args() {
     let now = Instant::now();
-    let mut cmd = Command::cargo_bin("rsnake").unwrap(); // "snake" see in Cargo.toml [[bin]]
+    let mut cmd = Command::new("rsnake"); // "snake" see in Cargo.toml [[bin]]
+    cmd.timeout(std::time::Duration::from_secs(10))
+        .assert()
+        .stdout(contains("Have a good"))
+        .stderr(contains("").or(contains("No such device")));
+    let elapsed = now.elapsed();
+    assert!(
+        elapsed.as_secs() >= 10,
+        "Command goes wrong, it takes : {elapsed:?}s",
+    );
+}
+#[test]
+//#[ignore = "Fail on no TTY (as on GitHub action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
+fn cli_integration_test_working_with_custom_args() {
+    let now = Instant::now();
+    let mut cmd = Command::new("rsnake"); // "snake" see in Cargo.toml [[bin]]
     cmd.arg("--speed")
         .arg("fast")
         .arg("--life")
@@ -42,20 +54,17 @@ fn cli_integration_test_with_default_args() {
         .arg("🐍")
         .arg("--body-symbol")
         .arg("•")
-        .arg("--nb-of-fruit")
+        .arg("--nb-of-fruits")
         .arg("4")
         .timeout(std::time::Duration::from_secs(10))
         .assert()
-        .stdout(contains("Have a good game !"))
-        .stderr(contains("").or(contains("No such device or address"))); // timeout 10s, or for github action
-
+        .stdout(contains("Have a good"))
+        .stderr(contains("").or(contains("No such device"))); // timeout 10s, or for github action
     let elapsed = now.elapsed();
-
     assert!(
         elapsed.as_secs() >= 10,
-        "Command goes wrong, it takes : {:?}s",
-        elapsed
+        "Command goes wrong, it takes : {elapsed:?}s",
     );
-    //alt: add a test mode option, to have no user interaction
+    //alt: add a test mode option to have no user interaction
     //or simulate one
 }

@@ -1,4 +1,4 @@
-name: Cross-platform Release (raw binaries)
+name: Cross-platform Release
 
 on:
   push:
@@ -26,14 +26,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           target: ${{ matrix.target }}
-          override: true
 
       - name: Build release binary
         run: cargo build --release --target=${{ matrix.target }}

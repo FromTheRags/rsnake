@@ -1,10 +1,10 @@
 use crate::controls::direction::Direction;
-use crate::controls::input::{greeting_screen_manage_input, GreetingMenuInput};
+use crate::controls::input::{GreetingMenuInput, greeting_screen_manage_input};
 use crate::game_logic::fruits_manager::FruitsManager;
 use crate::game_logic::game_options::GameOptions;
 use crate::game_logic::playing_logic::SwitchMenu::{Fruits, Help, Main, Parameters, Run, Speed};
 use crate::game_logic::state::{GameState, GameStatus};
-use crate::graphics::menus::greeting::{main_greeting_menu, GreetingSimpleDisplay, SwitchMenu};
+use crate::graphics::menus::greeting::{GreetingSimpleDisplay, SwitchMenu, main_greeting_menu};
 use crate::graphics::menus::retro_parameter_table::customized_with_cli::setup_and_run_cli_table_parameters;
 use crate::graphics::menus::retro_parameter_table::customized_with_fruits::setup_and_run_fruits_table_parameters;
 use crate::graphics::sprites::fruit::Fruit;

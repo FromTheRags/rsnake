@@ -1,6 +1,6 @@
 use crate::graphics::menus::utils_layout::render_full_centered_paragraph;
-use ratatui::style::Color;
 use ratatui::Frame;
+use ratatui::style::Color;
 
 // For ASCII art use AI or a generator as:
 // http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=Pause

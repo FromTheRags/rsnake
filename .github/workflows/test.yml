@@ -16,14 +16,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions/checkout@v5
+      - name: Install Rust (stable + clippy + rustfmt)
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
           components: clippy
+        #, rustfmt
+        #- name: Check formatting
+        #  run: cargo fmt --all --check
+
       - name: Run Clippy (warnings allowed, otherwise add "-- -D warnings")
         run: cargo clippy --all-targets --all-features
+
       - name: Tests
         run: cargo test --verbose
