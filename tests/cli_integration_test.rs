@@ -1,4 +1,4 @@
-use assert_cmd::Command;
+use assert_cmd::{cargo_bin, Command};
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use std::time::Instant;
@@ -6,7 +6,8 @@ use std::time::Instant;
 //For more generic, integration like tests
 #[test]
 fn cli_integration_test_fails_on_invalid_velocity() {
-    let mut cmd = Command::new("rsnake");
+    let path = cargo_bin!("rsnake");
+    let mut cmd = Command::new(path);
     cmd.arg("--speed")
         .arg("super_sonic") // invalide
         .arg("--life")
@@ -28,7 +29,8 @@ fn cli_integration_test_fails_on_invalid_velocity() {
 //#[ignore = "Fail on no TTY (as on github action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
 fn cli_integration_test_working_default_args() {
     let now = Instant::now();
-    let mut cmd = Command::new("rsnake"); // "snake" see in Cargo.toml [[bin]]
+    let path = cargo_bin!("rsnake");
+    let mut cmd = Command::new(path); // "snake" see in Cargo.toml [[bin]]
     cmd.timeout(std::time::Duration::from_secs(10))
         .assert()
         .stdout(contains("Have a good"))
@@ -43,7 +45,8 @@ fn cli_integration_test_working_default_args() {
 //#[ignore = "Fail on no TTY (as on GitHub action) because of raw terminal mode, run it locally with cargo test -- --ignored"]
 fn cli_integration_test_working_with_custom_args() {
     let now = Instant::now();
-    let mut cmd = Command::new("rsnake"); // "snake" see in Cargo.toml [[bin]]
+    let path = cargo_bin!("rsnake");
+    let mut cmd = Command::new(path); // "snake" see in Cargo.toml [[bin]]
     cmd.arg("--speed")
         .arg("fast")
         .arg("--life")

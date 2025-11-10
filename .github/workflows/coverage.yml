@@ -15,10 +15,8 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v5
 
-      - name: Install Rust (stable + clippy + rustfmt) toolchain
+      - name: Install Rust stable toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-
 
       - name: Install llvm-tools + cargo-llvm-cov
         run: |
