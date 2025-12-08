@@ -1,8 +1,9 @@
 use crate::graphics::menus::retro_parameter_table::generic_logic::RowData;
-use ratatui::Frame;
+use crate::graphics::menus::retro_parameter_table::generic_style::DEFAULT_ITEM_HEIGHT;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, Paragraph};
+use ratatui::Frame;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Creates a vertically centered rectangle within the given area with the specified number of lines.
@@ -92,4 +93,19 @@ pub fn calculate_max_column_widths(rows: &[RowData], headers: &[String]) -> Vec<
     }
 
     column_widths
+}
+pub fn calculate_sum_inner_row_heights(rows: &[RowData]) -> usize {
+    rows.iter()
+        .map(|r| {
+            // Get the maximum height of the cells in the current row.
+            // max() returns an Option<&usize> because it operates on an iterator of references.
+            // *The result must be dereferenced to get the usize value before falling back
+            // to a default or summing.*
+            r.get_cell_heights()
+                .iter()
+                .max()
+                .map(|h| *h) // Dereference the &usize to usize
+                .unwrap_or(DEFAULT_ITEM_HEIGHT) // Fall back to DEFAULT_ITEM_HEIGHT if the row is empty
+        })
+        .sum::<usize>()
 }

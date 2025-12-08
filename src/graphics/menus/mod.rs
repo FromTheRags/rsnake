@@ -12,5 +12,6 @@
 pub mod retro_parameter_table;
 
 pub mod greeting;
+pub mod main_menu;
 pub mod status;
 pub mod utils_layout;

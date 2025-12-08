@@ -1,27 +1,40 @@
-use crate::game_logic::game_options::{GameOptions, ONLY_FOR_CLI_PARAMETERS, get_parameter_range};
+use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
+    get_default_action_input, ActionInputs, CellValue, FooterData, GenericMenu, RowData,
+    TableParameterAction,
 };
 use clap::CommandFactory;
+use crossterm::event::KeyCode;
 use ratatui::DefaultTerminal;
 
 pub fn setup_and_run_cli_table_parameters(
     terminal: &mut DefaultTerminal,
     options: &mut GameOptions,
 ) {
+    let data: Vec<RowData> = load_parameter_cli_in_table(options);
+    let mut actions = get_default_action_input();
+    actions.push(ActionInputs {
+        key: vec![KeyCode::Char('a'), KeyCode::Char(' ')],
+        action: TableParameterAction::Apply(options),
+    });
+    actions.push(ActionInputs {
+        key: vec![KeyCode::Char('1')],
+        //Lazy init of the game options from preset 1
+        action: TableParameterAction::LoadPreset(1, || {
+            load_parameter_cli_in_table(&mut GameOptions::load_from_toml_preset(1).unwrap())
+        }),
+    });
     // Call Parameters screen and input management with the game options to modify
     GenericMenu::new(
-        load_parameter_cli_in_table(options),
+        data,
         &parameters_cli_get_headers(),
         parameters_cli_get_footer_data(),
-        get_default_action_input(),
-        Some(options),
     )
-    .run(terminal);
+    .run(actions, terminal);
 }
 
 #[must_use]
-fn load_parameter_cli_in_table(options: &GameOptions) -> Vec<RowData> {
+fn load_parameter_cli_in_table(options: &mut GameOptions) -> Vec<RowData> {
     let cmd = GameOptions::command();
     let mut rows = vec![];
     let mut arg_value;

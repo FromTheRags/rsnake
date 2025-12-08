@@ -1,7 +1,7 @@
 use crate::controls::speed::Speed;
 use crate::graphics::graphic_block::Position;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    ApplyParameter, CellValue, RowData,
+    ActionParameter, CellValue, RowData,
 };
 use clap::Parser;
 use clap::{ArgAction, CommandFactory};
@@ -310,8 +310,18 @@ impl GameOptions {
     ///
     /// Panic if the file contents cannot be deserialized as valid TOML.
     pub fn load_from_toml<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        // Later: apply same restrictions as CLI with a clamp
+        // Later: apply the same restrictions as CLI with a clamp
         let mut file = File::open(path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+        let params =
+            toml::from_str(&contents).expect("Failed to deserialize GameParameters from TOML");
+        Ok(params)
+    }
+    pub fn load_from_toml_preset(preset: usize) -> io::Result<Self> {
+        //DRAFT !!
+        // Later: apply same restrictions as CLI with a clamp
+        let mut file = File::open("")?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         let params =
@@ -331,7 +341,7 @@ fn default_false() -> bool {
     false
 }
 
-impl ApplyParameter for GameOptions {
+impl ActionParameter for GameOptions {
     fn apply(&mut self, rows: &[RowData]) {
         let command = GameOptions::command();
         let prog_name = command.get_name().to_string();

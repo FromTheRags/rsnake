@@ -1,40 +1,47 @@
 use crate::graphics::menus::retro_parameter_table::generic_style::{
-    DISPLAY_CELL_OUT_SPACE, ITEM_HEIGHT, ScrollBarCustomRetroStyle, TableCustomRetroStyle,
-    get_formated_footer,
+    get_formated_footer, ScrollBarCustomRetroStyle, TableCustomRetroStyle, DISPLAY_CELL_OUT_SPACE,
 };
 use crate::graphics::menus::utils_layout::{
-    calculate_max_column_widths, constraint_length_from_widths,
+    calculate_max_column_widths, calculate_sum_inner_row_heights, constraint_length_from_widths,
 };
 use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::widgets::FrameExt;
 use ratatui::{
-    DefaultTerminal, Frame,
-    layout::{Constraint, Layout},
-    widgets::Paragraph,
+    layout::{Constraint, Layout}, widgets::Paragraph,
+    DefaultTerminal,
+    Frame,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
-pub trait ApplyParameter {
+pub trait ActionParameter {
     fn apply(&mut self, rows: &[RowData]);
 }
 pub struct FooterData {
     pub symbol: String,
     pub text: String,
 }
-#[derive(Clone)]
-pub struct ActionInputs {
+
+pub struct ActionInputs<'a> {
     pub key: Vec<KeyCode>,
-    pub action: TableParameterAction,
+    pub action: TableParameterAction<'a>,
 }
-#[derive(Clone)]
-pub enum TableParameterAction {
+
+pub enum TableParameterAction<'a> {
     NextValue,
     PreviousValue,
     NextRow,
     PreviousRow,
     //Shortcut for genericity could be a trait but no use there
-    QuitAndApply,
+    Apply(&'a mut dyn ActionParameter),
+    Quit,
+    //Goal for load: use the CLI fn to load from File and chain it
+    //le usize permet de keep track of the current preset loaded
+    LoadPreset(usize, fn() -> Vec<RowData>),
+    //Save current data to the current profile
+    SaveToPresetFile,
+    //at creation / loading, keep a copy of Vec<RowData> to reintialize by swpaping data & reloading interface
+    Reload,
 }
 
 // Define a generic cell value type
@@ -91,6 +98,20 @@ impl CellValue {
             CellValue::Text(v) => v.split('\n').map(|s| s.chars().count()).max().unwrap_or(0),
         }
     }
+    fn height(&self) -> usize {
+        match self {
+            CellValue::Options { values, .. } => {
+                let max = values
+                    .iter()
+                    .map(|v| v.split('\n').count())
+                    .max()
+                    .unwrap_or(0);
+                max
+            }
+            //number of lines
+            CellValue::Text(v) => v.split('\n').count(),
+        }
+    }
 }
 
 // A row data type with only one option of changing the parameter
@@ -110,6 +131,9 @@ impl RowData {
     pub(crate) fn get_cell_widths(&self) -> Vec<usize> {
         self.cells.iter().map(CellValue::width).collect()
     }
+    pub(crate) fn get_cell_heights(&self) -> Vec<usize> {
+        self.cells.iter().map(CellValue::height).collect()
+    }
     fn next_cell_value(&mut self) {
         for c in &mut self.cells {
             c.next_value();
@@ -128,25 +152,17 @@ pub struct GenericMenu<'a> {
     selected_row: usize,
     info_footer: Paragraph<'a>,
     vertical_layout: Layout,
-    //table Action, including apply to change value to whatever need (in our case the CLI struct)
-    actions: Vec<ActionInputs>,
     //To be generic, the table can be saved to any data structure
-    saved_to: Option<&'a mut dyn ApplyParameter>,
+    //saved_to: Option<&'a mut dyn ApplyParameter>,
 }
 
 impl<'a> GenericMenu<'a> {
     #[must_use]
-    pub fn new(
-        rows: Vec<RowData>,
-        headers: &[String],
-        info_footer: Vec<FooterData>,
-        actions: Vec<ActionInputs>,
-        saved_to: Option<&'a mut dyn ApplyParameter>,
-    ) -> Self {
+    pub fn new(rows: Vec<RowData>, headers: &[String], info_footer: Vec<FooterData>) -> Self {
         // Calculate constraints
         let column_widths = calculate_max_column_widths(&rows, headers);
         let constraints = constraint_length_from_widths(&column_widths);
-        let row_number = rows.len();
+        let row_sum_height = calculate_sum_inner_row_heights(&rows);
         let vertical_layout = Layout::vertical([
             Constraint::Min(1),
             Constraint::Length(
@@ -155,28 +171,11 @@ impl<'a> GenericMenu<'a> {
         ]);
         Self {
             table_custom: TableCustomRetroStyle::new(headers, rows, 0, constraints),
-            scrollbar: ScrollBarCustomRetroStyle::new(row_number),
+            scrollbar: ScrollBarCustomRetroStyle::new(row_sum_height),
             selected_row: 0,
             info_footer: get_formated_footer(info_footer),
             vertical_layout,
-            actions,
-            saved_to,
         }
-    }
-    #[must_use]
-    pub fn new_with_default_action(
-        rows: Vec<RowData>,
-        headers: &[String],
-        info_footer: Vec<FooterData>,
-        saved_to: Option<&'a mut dyn ApplyParameter>,
-    ) -> Self {
-        GenericMenu::new(
-            rows,
-            headers,
-            info_footer,
-            get_default_action_input(),
-            saved_to,
-        )
     }
 
     pub fn next_row(&mut self) {
@@ -186,7 +185,12 @@ impl<'a> GenericMenu<'a> {
         };
         self.table_custom.state.select(Some(i));
         self.selected_row = i;
-        self.scrollbar.scroll_state = self.scrollbar.scroll_state.position(i * ITEM_HEIGHT);
+        self.scrollbar.scroll_state =
+            self.scrollbar
+                .scroll_state
+                .position(calculate_sum_inner_row_heights(
+                    &self.table_custom.rows[..i],
+                ));
     }
 
     pub fn previous_row(&mut self) {
@@ -196,7 +200,12 @@ impl<'a> GenericMenu<'a> {
         };
         self.table_custom.state.select(Some(i));
         self.selected_row = i;
-        self.scrollbar.scroll_state = self.scrollbar.scroll_state.position(i * ITEM_HEIGHT);
+        self.scrollbar.scroll_state =
+            self.scrollbar
+                .scroll_state
+                .position(calculate_sum_inner_row_heights(
+                    &self.table_custom.rows[..i],
+                ));
     }
 
     pub fn next_parameter_value(&mut self) {
@@ -211,16 +220,15 @@ impl<'a> GenericMenu<'a> {
         }
     }
 
-    pub fn run(&mut self, terminal: &mut DefaultTerminal) {
-        let actions = self.actions.clone();
+    pub fn run(&mut self, mut actions: Vec<ActionInputs<'a>>, terminal: &mut DefaultTerminal) {
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
             if let Event::Key(key) = event::read().unwrap() {
                 if key.kind == KeyEventKind::Press {
-                    for action in &actions {
-                        for key_code in &action.key {
-                            if key_code == &key.code {
-                                match action.action {
+                    for action in &mut actions {
+                        for key_code in action.key.clone() {
+                            if key_code == key.code {
+                                match &mut action.action {
                                     TableParameterAction::NextValue => {
                                         self.next_parameter_value();
                                     }
@@ -233,10 +241,11 @@ impl<'a> GenericMenu<'a> {
                                     TableParameterAction::PreviousRow => {
                                         self.previous_row();
                                     }
-                                    TableParameterAction::QuitAndApply => {
-                                        if let Some(s) = &mut self.saved_to {
-                                            s.apply(&self.table_custom.rows);
-                                        }
+                                    TableParameterAction::Apply(action) => {
+                                        action.apply(&self.table_custom.rows);
+                                        return;
+                                    }
+                                    _ => {
                                         return;
                                     }
                                 }
@@ -268,7 +277,7 @@ impl<'a> GenericMenu<'a> {
 }
 
 #[must_use]
-pub fn get_default_action_input() -> Vec<ActionInputs> {
+pub fn get_default_action_input<'a>() -> Vec<ActionInputs<'a>> {
     vec![
         ActionInputs {
             key: vec![KeyCode::Down, KeyCode::Char('s')],
@@ -288,7 +297,7 @@ pub fn get_default_action_input() -> Vec<ActionInputs> {
         },
         ActionInputs {
             key: vec![KeyCode::Esc, KeyCode::Char('x')],
-            action: TableParameterAction::QuitAndApply,
+            action: TableParameterAction::Quit,
         },
     ]
 }

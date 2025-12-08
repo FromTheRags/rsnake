@@ -1,5 +1,5 @@
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
+    get_default_action_input, CellValue, FooterData, GenericMenu, RowData,
 };
 use crate::graphics::sprites::fruit::FRUITS_SCORES_PROBABILITIES;
 use ratatui::DefaultTerminal;
@@ -12,10 +12,8 @@ pub fn setup_and_run_fruits_table_parameters(terminal: &mut DefaultTerminal) {
         load_fruits_info_in_table(),
         &fruits_get_headers(),
         fruits_get_footer_data(),
-        get_default_action_input(),
-        None,
     )
-    .run(terminal);
+    .run(get_default_action_input(), terminal);
 }
 /// Loads fruit information into table rows for display
 /// Each row contains: Fruit emoji, Base Score, Spawn Chance, and Size Effect
