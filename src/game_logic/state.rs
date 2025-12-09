@@ -27,7 +27,7 @@ pub enum GameStatus {
     ByeBye,     // The game has exited
     Playing,    // The game is in progress
     Restarting, // The game is restarting
-    Menu,       // The game is going or displaying greeting Menu
+    Menu,       // The game is going or displaying the Main Menu
 }
 
 /// Manages the game state, including life count, score, and current status.

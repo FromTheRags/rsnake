@@ -1,188 +1,138 @@
-use crate::controls::input::{QUIT_KEYS, START_KEYS};
-use crate::game_logic::game_options::GameOptions;
-use crate::graphics::menus::greeting::SwitchMenu::{Doc, Fruits, Highs, Parameters, Run, Speed};
-use crate::graphics::menus::greeting::{main_greeting_menu, SwitchMenu};
-use crate::graphics::menus::retro_parameter_table::customized_with_cli::setup_and_run_cli_table_parameters;
-use crate::graphics::menus::retro_parameter_table::customized_with_doc::setup_and_run_doc_table_parameters;
-use crate::graphics::menus::retro_parameter_table::customized_with_fruits::setup_and_run_fruits_table_parameters;
-use crate::graphics::menus::retro_parameter_table::customized_with_speed::setup_and_run_speed_table_parameters;
-use crossterm::event;
-use crossterm::event::{KeyCode, KeyEventKind};
-use ratatui::DefaultTerminal;
+use crate::graphics::menus::messages::{CONTROLS_TABLE, SNAKE_LOGO};
+use crate::graphics::menus::utils_layout::frame_vertically_centered_rect;
+use clap::ValueEnum;
+use ratatui::style::Stylize;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::{Block, BorderType, Paragraph};
+use ratatui::{DefaultTerminal, Frame};
+use std::cmp::PartialEq;
+use std::thread::sleep;
+use std::time::Duration;
+use unicode_segmentation::UnicodeSegmentation;
 
-const SWITCH_MENUS_OPTION: [SwitchMenu; 6] = [Highs, Fruits, Speed, Run, Parameters, Doc];
-const PARAMETERS_KEYS: [KeyCode; 2] = [KeyCode::Char('e'), KeyCode::Char('E')];
-const FRUITS_KEYS: [KeyCode; 2] = [KeyCode::Char('f'), KeyCode::Char('F')];
-const VELOCITY_KEYS: [KeyCode; 2] = [KeyCode::Char('s'), KeyCode::Char('P')];
-const HELP_KEYS: [KeyCode; 2] = [KeyCode::Char('d'), KeyCode::Char('D')];
-const HIGH_SCORE_KEYS: [KeyCode; 2] = [KeyCode::Char('h'), KeyCode::Char('H')];
-const NEXT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::Up];
-const PREVIOUS_KEYS: [KeyCode; 3] = [KeyCode::Left, KeyCode::Backspace, KeyCode::Down];
-const ENTER_KEYS: [KeyCode; 2] = [KeyCode::Enter, KeyCode::End];
-/// The control part of the main menu
-/// allows switching to a submenu (Fruits, Speed, Parameters, etc.)
-/// Use `GreetingMenuInput` to known which keys have been used
-/// and `GreetingSimpleDisplay` to display an easy menu, without input control (all except run and parameters)
-/// Return true if the player wants to play, false otherwise
-///
-/// # Panics                                                                                              
-/// if Terminal writing is not possible
-enum MenuFlow {
-    Continue,
-    StartGame,
-    QuitGame,
+/// Print the wanted welcome screen controls
+/// Show Fruit and Speed menus alongside
+/// Sadly `slow_blink` and `fast_blink` are not rendered anymore on modern terminal...
+/// # Panics
+/// Will panic if no suitable terminal for displaying ios provided
+pub fn display_main_menu(
+    terminal: &mut DefaultTerminal,
+    selected_switch_menu_for_display_bracket: &SwitchMenu,
+) {
+    //terminal.clear().expect("Clearing terminal fail ");
+    terminal
+        .draw(|frame| {
+            let area = frame.area();
+            big_snake_menu(frame, selected_switch_menu_for_display_bracket);
+            //buttons_menu(frame, &app);
+            //set a border all around the terminal
+            frame.render_widget(Block::bordered().border_type(BorderType::Double), area);
+        })
+        .expect("Unusable terminal render");
+    sleep(Duration::from_millis(100));
 }
 
-fn handle_menu_action(
-    input: Option<&GreetingMenuInput>,
-    selected: &mut usize,
-    terminal: &mut DefaultTerminal,
-    options: &mut GameOptions,
-) -> MenuFlow {
-    let to_display = match input {
-        Some(GreetingMenuInput::Enter) => SWITCH_MENUS_OPTION[*selected].clone(),
-        Some(GreetingMenuInput::Parameters) => Parameters,
-        Some(GreetingMenuInput::Fruits) => Fruits,
-        Some(GreetingMenuInput::Speed) => Speed,
-        Some(GreetingMenuInput::Doc) => Doc,
-        _ => SwitchMenu::Highs,
-    };
-
-    if to_display == Run {
-        return MenuFlow::StartGame;
-    } else if to_display == Parameters {
-        run_submenu_and_reset(terminal, selected, |term| {
-            setup_and_run_cli_table_parameters(term, options);
-        });
-    } else if to_display == Fruits {
-        run_submenu_and_reset(terminal, selected, setup_and_run_fruits_table_parameters);
-    } else if to_display == Speed {
-        run_submenu_and_reset(terminal, selected, setup_and_run_speed_table_parameters);
-    } else if to_display == Doc {
-        run_submenu_and_reset(terminal, selected, setup_and_run_doc_table_parameters);
-    }
-    MenuFlow::Continue
-}
-
-fn process_menu_input(
-    input: Option<GreetingMenuInput>,
-    selected: &mut usize,
-    terminal: &mut DefaultTerminal,
-    options: &mut GameOptions,
-) -> MenuFlow {
-    match input {
-        Some(GreetingMenuInput::Next) => {
-            *selected = (*selected + 1) % SWITCH_MENUS_OPTION.len();
-        }
-        Some(GreetingMenuInput::Previous) => {
-            *selected = (*selected + SWITCH_MENUS_OPTION.len() - 1) % SWITCH_MENUS_OPTION.len();
-        }
-        Some(GreetingMenuInput::QuitGame) => {
-            return MenuFlow::QuitGame;
-        }
-        Some(GreetingMenuInput::Start) => {
-            return MenuFlow::StartGame;
-        }
-        Some(input) => {
-            return handle_menu_action(Some(&input), selected, terminal, options);
-        }
-        _ => {}
+fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
+    let mut lines = vec![];
+    // Add logo lines
+    for logo_line in SNAKE_LOGO.lines() {
+        lines.push(Line::from(logo_line));
     }
 
-    MenuFlow::Continue
+    // Add navigation buttons
+    lines.push(Line::from(get_button_span(to_display_switch)));
+
+    // Add the control table
+    for table_line in CONTROLS_TABLE.lines() {
+        lines.push(Line::from(table_line));
+    }
+
+    // Add a greeting message
+    lines.push(Line::from("Have a good 🐍 game ! 🎮".green()));
+    let nb_lines = lines.len();
+    frame.render_widget(
+        //centered horizontally
+        Paragraph::new(Text::from(lines)).centered(),
+        frame_vertically_centered_rect(frame.area(), nb_lines),
+    );
+}
+/// Represents a button in the menu interface
+struct Button {
+    name: &'static str,
+    selected: bool,
 }
 
-pub fn controls_main_switch_menu(
-    terminal: &mut DefaultTerminal,
-    options: &mut GameOptions,
-) -> bool {
-    let mut selected = 3;
-    main_greeting_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
+impl Button {
+    /// Creates a new button with the given name and hotkey
+    const fn new(name: &'static str) -> Self {
+        Self {
+            name,
+            selected: false,
+        }
+    }
 
-    loop {
-        let input = greeting_screen_manage_input();
+    /// Sets the selected state of the button
+    fn selected(&mut self, selected: bool) {
+        self.selected = selected;
+    }
 
-        let flow = process_menu_input(input, &mut selected, terminal, options);
-
-        match flow {
-            MenuFlow::Continue => {
-                main_greeting_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
-            }
-            MenuFlow::StartGame => return true,
-            MenuFlow::QuitGame => return false,
+    /// Converts the button to a vector of spans for rendering
+    fn to_spans(&self) -> Vec<Span<'static>> {
+        if self.selected {
+            vec![
+                Span::styled(" [ ", Style::default().fg(Color::Red)).add_modifier(Modifier::BOLD),
+                Span::raw(self.name),
+                Span::styled(
+                    " ] ",
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                ),
+            ]
+        } else {
+            let (first, rest) = match self.name.graphemes(true).next() {
+                Some(grapheme) => {
+                    // A grapheme is a &str, so we can get its byte length with .len()
+                    let rest = &self.name[grapheme.len()..];
+                    (grapheme, rest) // Both are &str
+                }
+                None => ("", ""), // Handle empty string
+            };
+            vec![
+                Span::raw("["),
+                // Span::styled can take a &str directly
+                Span::styled(first, Style::default().fg(Color::Yellow)),
+                Span::raw(format!("{rest}]")),
+            ]
         }
     }
 }
 
-fn run_submenu_and_reset<F>(terminal: &mut DefaultTerminal, selected: &mut usize, submenu_logic: F)
-where
-    F: FnOnce(&mut DefaultTerminal),
-{
-    submenu_logic(terminal);
-    *selected = 3;
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum GreetingMenuInput {
+/// Option that can be selected from the main menu, using a lateral switcher
+#[derive(PartialEq, ValueEnum, Clone)]
+pub enum SwitchMenu {
+    Highs,
     Fruits,
     Speed,
-    Start,
+    Run,
     Parameters,
     Doc,
-    Highs,
     Main,
-    QuitGame,
-    Next,
-    Previous,
-    Enter,
 }
-
-/// Check input on the greeting screen
-/// Return Some(GreetingOption) if input is valid, with the chosen Greeting Option, None otherwise
-/// # Panics                                                                                              
-/// if impossible to get key event, better crash as game will be unplayable  
-#[must_use]
-pub fn greeting_screen_manage_input() -> Option<GreetingMenuInput> {
-    // Read keyboard key event
-    if let event::Event::Key(key) = event::read().expect("Error reading key event") {
-        match key.kind {
-            //If a key is pressed
-            KeyEventKind::Press => {
-                flush_input_buffer();
-                // If it is a directional key
-                if START_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Start)
-                    // if it is a quit key
-                } else if QUIT_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::QuitGame)
-                } else if PARAMETERS_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Parameters)
-                } else if FRUITS_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Fruits)
-                } else if VELOCITY_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Speed)
-                } else if HELP_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Doc)
-                } else if HIGH_SCORE_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Highs)
-                } else if NEXT_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Next)
-                } else if PREVIOUS_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Previous)
-                } else if ENTER_KEYS.contains(&key.code) {
-                    Some(GreetingMenuInput::Enter)
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        }
-    } else {
-        None
+const BUTTONS: [(SwitchMenu, Button); 6] = [
+    (SwitchMenu::Highs, Button::new("Highs💯")),
+    (SwitchMenu::Fruits, Button::new("Fruit")),
+    (SwitchMenu::Speed, Button::new("Speed")),
+    (SwitchMenu::Run, Button::new("Run")),
+    (SwitchMenu::Parameters, Button::new("Edit⚙️")),
+    (SwitchMenu::Doc, Button::new("Docℹ️")),
+];
+/// Returns a vector of spans representing the button navigation menu
+fn get_button_span(selected: &SwitchMenu) -> Vec<Span<'static>> {
+    let mut vec_line_button = vec![Span::raw("↔")];
+    // Add each button to the menu, marking the selected one
+    for (menu, mut button) in BUTTONS {
+        button.selected(selected == &menu);
+        vec_line_button.extend(button.to_spans());
     }
-}
-fn flush_input_buffer() {
-    while event::poll(std::time::Duration::from_secs(0)).unwrap_or(false) {
-        let _ = crossterm::event::read(); // Discard any buffered events
-    }
+    vec_line_button
 }

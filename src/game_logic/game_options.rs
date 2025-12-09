@@ -19,7 +19,7 @@ pub const INI_POSITION: Position = Position { x: 50, y: 5 };
 pub const SAVE_FILE: &str = "snake_config.toml";
 //Options to not display in the table menu in-game parameters
 pub const ONLY_FOR_CLI_PARAMETERS: [&str; 3] = ["save", "load", "no-"];
-//Later auto generate the header based on help message as in-game table menu
+//Later auto generates the header based on the help message as the in-game table menu
 #[allow(clippy::needless_raw_string_hashes)]
 const PARAMS_HEADER: &str = r#"
 # Snake Game Configuration
@@ -39,8 +39,8 @@ const PARAMS_HEADER: &str = r#"
 ///    x: 1 => 999,
 ///    y: 1 => 99,
 /// }
-/// To have some fun with basic macro and to facilitate parsing for in-game menu
-/// (avoid help text parsing, avoid global variable (or lazy init as hashmap cannot be global), avoid eternal crate, add metadata like all flatten)
+/// To have some fun with basic macro and to facilitate parsing for the in-game menu
+/// (avoid help text parsing, avoid global variable (or lazy init as hashmap cannot be global), avoid eternal crate, add metadata like all flattening)
 /// This macro creates:
 /// 1. A function to get parameter ranges
 /// 2. A parameter parser functions for use with clap
@@ -62,7 +62,7 @@ macro_rules! define_args_with_ranges {
                 _ => None,
             }
         }
-        /// Get a clap value parser for a specific parameter or the default 1..99 range
+        /// Get a clap value parser for a specific parameter or the default range of 1..99
         #[must_use] fn get_parameter_parser(param_name: &str) -> clap::builder::RangedI64ValueParser<u16> {
             match param_name {
                 $(
@@ -194,7 +194,8 @@ pub struct GameOptions {
     )]
     pub nb_of_fruits: u16,
     /// Modern way to do CLI, two dedicated flag to set/unset the value, beginning with --no- (for false)
-    /// UX better than --feature false / --feature true, better than default (no flag = false). If you want possibility to set both values,
+    /// UX better than --feature false / --feature true, better than default (no flag = false).
+    /// If you want the possibility to set both values,
     /// as no clear default value or want to be able to easily programmatically change the value (as there)
     /// or to have a default at true <hr>
     /// See: <https://jwodder.github.io/kbits/posts/clap-bool-negate/>
@@ -292,7 +293,7 @@ impl GameOptions {
     }
     /// To be editable easily
     /// # Panics
-    /// if self cannot be parsed ( not possible)
+    /// if self cannot be parsed (not possible)
     #[must_use]
     pub fn to_structured_toml(&self) -> Table {
         let toml_string =
@@ -318,7 +319,12 @@ impl GameOptions {
             toml::from_str(&contents).expect("Failed to deserialize GameParameters from TOML");
         Ok(params)
     }
-    pub fn load_from_toml_preset(preset: usize) -> io::Result<Self> {
+    /// Load parameters from a preset TOML configuration
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the preset file cannot be opened or read, or if it contains invalid TOML.
+    pub fn load_from_toml_preset(_preset: usize) -> io::Result<Self> {
         //DRAFT !!
         // Later: apply same restrictions as CLI with a clamp
         let mut file = File::open("")?;
@@ -359,7 +365,7 @@ impl ActionParameter for GameOptions {
                     match value.parse::<bool>() {
                         Ok(bv) => {
                             // Modern way to do CLI, two dedicated flag to set/unset the value, beginning with --no- (for false)
-                            // UX better than --feature false / --feature true, better than default (no flag = false). If you want the possibility to set both values,
+                            // UX better than --feature false / --feature true, better than default (no flag = false). If you want the possibility to set both values
                             // as no clear default value or want to be able to easily programmatically change the value (as there)
                             // or to have a default at true
                             let bv_name: String = if bv {
@@ -379,7 +385,7 @@ impl ActionParameter for GameOptions {
         }
         // Update all the game options as a reparsing (only one way to update value to check).
         // Some debate over the utility of this feature for clap, but widely used to update from env / configuration
-        //  Allows keeping the struct for cli parameter as a model object, feeding it with different stream of data.
+        //  Allows keeping the struct for cli parameter as a model object, feeding it with different streams of data.
         // The backup solution is to serialize the current value in TOML and load them in game_options as already done for the file saving
         // (safe as constraints in-game value)
         self.update_from(new_args);

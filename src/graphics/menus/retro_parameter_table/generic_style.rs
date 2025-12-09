@@ -1,13 +1,13 @@
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     CellValue, FooterData, RowData,
 };
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Margin, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Text};
 use ratatui::widgets::{
     Block, BorderType, Borders, Cell, FrameExt, HighlightSpacing, Paragraph, Row, Scrollbar,
     ScrollbarOrientation, ScrollbarState, Table, TableState,
 };
-use ratatui::Frame;
 use std::fmt;
 
 // Updated constants with emojis
@@ -55,7 +55,7 @@ pub(crate) struct ScrollBarCustomRetroStyle<'a> {
 impl ScrollBarCustomRetroStyle<'_> {
     pub fn new(row_sum_height: usize) -> Self {
         Self {
-            scroll_state: ScrollbarState::new(14).viewport_content_length(20),
+            scroll_state: ScrollbarState::new(row_sum_height),
             margin: Margin {
                 vertical: 1,
                 horizontal: 1,

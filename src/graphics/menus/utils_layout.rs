@@ -94,6 +94,7 @@ pub fn calculate_max_column_widths(rows: &[RowData], headers: &[String]) -> Vec<
 
     column_widths
 }
+#[must_use]
 pub fn calculate_sum_inner_row_heights(rows: &[RowData]) -> usize {
     rows.iter()
         .map(|r| {
@@ -104,7 +105,7 @@ pub fn calculate_sum_inner_row_heights(rows: &[RowData]) -> usize {
             r.get_cell_heights()
                 .iter()
                 .max()
-                .map(|h| *h) // Dereference the &usize to usize
+                .copied() // Dereference the &usize to usize
                 .unwrap_or(DEFAULT_ITEM_HEIGHT) // Fall back to DEFAULT_ITEM_HEIGHT if the row is empty
         })
         .sum::<usize>()

@@ -1,10 +1,26 @@
 use crate::graphics::menus::utils_layout::render_full_centered_paragraph;
-use ratatui::Frame;
 use ratatui::style::Color;
+use ratatui::Frame;
 
 // For ASCII art use AI or a generator as:
 // http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=Pause
 // For text display: https://ratatui.rs/recipes/render/display-text/
+//Or (but use a dependency): https://crates.io/crates/tui-big-text
+pub const SNAKE_LOGO: &str = "\
+███████╗ ███╗   ██╗  █████╗  ██╗  ██╗ ███████╗
+██╔════╝ ████╗  ██║ ██╔══██╗ ██║ ██╔╝ ██╔════╝
+███████╗ ██╔██╗ ██║ ███████║ █████╔╝  █████╗  
+╚════██║ ██║╚██╗██║ ██╔══██║ ██╔═██╗  ██╔══╝  
+███████║ ██║ ╚████║ ██║  ██║ ██║  ██╗ ███████╗
+╚══════╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝";
+
+// Define the control table as a constant
+pub const CONTROLS_TABLE: &str = "\
++--------+------+------+-------+-----+-------+
+|Controls| ←↕→  |  Q   | P / ⎵ |  M  |   R   |
++--------+------+------+-------+-----+-------+
+|Effects | Move | Quit | Pause | Menu| Start |
++--------+------+------+-------+-----+-------+";
 const GAME_OVER_TEXT: &str = "\n\
  ██████╗  █████╗ ███╗   ███╗███████╗       ██████╗ ██╗   ██╗███████╗██████╗ \n\
 ██╔═══   ██╔══██╗████╗ ████║██╔════╝      ██╔═══██╗██║   ██║██╔════╝██╔══██╗\n\

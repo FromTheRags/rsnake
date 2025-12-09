@@ -135,21 +135,21 @@ fn game_state_render(state: &GameStatus, frame: &mut Frame) -> bool {
     let mut rendering_break = false;
     match state {
         GameStatus::Paused => {
-            menus::status::pause_paragraph(frame);
+            menus::messages::pause_paragraph(frame);
         }
         GameStatus::GameOver => {
-            menus::status::game_over_paragraph(frame);
+            menus::messages::game_over_paragraph(frame);
         }
         GameStatus::ByeBye => {
-            menus::status::byebye_paragraph(frame);
+            menus::messages::byebye_paragraph(frame);
             rendering_break = true;
         }
         GameStatus::Playing => (),
         GameStatus::Restarting => {
-            menus::status::restart_paragraph(frame);
+            menus::messages::restart_paragraph(frame);
         }
         GameStatus::Menu => {
-            menus::status::menu_paragraph(frame);
+            menus::messages::menu_paragraph(frame);
             rendering_break = true;
         }
     }

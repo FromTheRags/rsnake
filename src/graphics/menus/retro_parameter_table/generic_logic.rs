@@ -24,7 +24,7 @@ pub struct FooterData {
 
 pub struct ActionInputs<'a> {
     pub key: Vec<KeyCode>,
-    pub action: TableParameterAction<'a>,
+    pub action: Vec<TableParameterAction<'a>>,
 }
 
 pub enum TableParameterAction<'a> {
@@ -32,16 +32,18 @@ pub enum TableParameterAction<'a> {
     PreviousValue,
     NextRow,
     PreviousRow,
-    //Shortcut for genericity could be a trait but no use there
+    //Genericity using a trait to allow using any reference to a type implementing ActionParameter
     Apply(&'a mut dyn ActionParameter),
     Quit,
     //Goal for load: use the CLI fn to load from File and chain it
     //le usize permet de keep track of the current preset loaded
+    //Genericity using a closure to allow using any fn to load from File
     LoadPreset(usize, fn() -> Vec<RowData>),
     //Save current data to the current profile
     SaveToPresetFile,
-    //at creation / loading, keep a copy of Vec<RowData> to reintialize by swpaping data & reloading interface
-    Reload,
+    //at creation / loading,
+    //keep a copy of Vec<RowData> to reinitialize by swapping data and reloading interface
+    Reset,
 }
 
 // Define a generic cell value type
@@ -100,14 +102,11 @@ impl CellValue {
     }
     fn height(&self) -> usize {
         match self {
-            CellValue::Options { values, .. } => {
-                let max = values
-                    .iter()
-                    .map(|v| v.split('\n').count())
-                    .max()
-                    .unwrap_or(0);
-                max
-            }
+            CellValue::Options { values, .. } => values
+                .iter()
+                .map(|v| v.split('\n').count())
+                .max()
+                .unwrap_or(0),
             //number of lines
             CellValue::Text(v) => v.split('\n').count(),
         }
@@ -220,41 +219,49 @@ impl<'a> GenericMenu<'a> {
         }
     }
 
-    pub fn run(&mut self, mut actions: Vec<ActionInputs<'a>>, terminal: &mut DefaultTerminal) {
+    pub fn run(
+        &mut self,
+        mut actions_inputs: Vec<ActionInputs<'a>>,
+        terminal: &mut DefaultTerminal,
+    ) {
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
             if let Event::Key(key) = event::read().unwrap() {
                 if key.kind == KeyEventKind::Press {
-                    for action in &mut actions {
-                        for key_code in action.key.clone() {
+                    for action_input in &mut actions_inputs {
+                        for key_code in action_input.key.clone() {
                             if key_code == key.code {
-                                match &mut action.action {
-                                    TableParameterAction::NextValue => {
-                                        self.next_parameter_value();
-                                    }
-                                    TableParameterAction::PreviousValue => {
-                                        self.previous_parameter_value();
-                                    }
-                                    TableParameterAction::NextRow => {
-                                        self.next_row();
-                                    }
-                                    TableParameterAction::PreviousRow => {
-                                        self.previous_row();
-                                    }
-                                    TableParameterAction::Apply(action) => {
-                                        action.apply(&self.table_custom.rows);
-                                        return;
-                                    }
-                                    _ => {
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+                                for unitary_tp_action in &mut action_input.action {
+                                    match unitary_tp_action {
+                                        TableParameterAction::NextValue => {
+                                            self.next_parameter_value();
+                                        }
+                                        TableParameterAction::PreviousValue => {
+                                            self.previous_parameter_value();
+                                        }
+                                        TableParameterAction::NextRow => {
+                                            self.next_row();
+                                        }
+                                        TableParameterAction::PreviousRow => {
+                                            self.previous_row();
+                                        }
+                                        TableParameterAction::Apply(action) => {
+                                            action.apply(&self.table_custom.rows);
+                                        }
+                                        TableParameterAction::Quit => {
+                                            return;
+                                        }
+                                        TableParameterAction::LoadPreset(_, _)
+                                        | TableParameterAction::SaveToPresetFile
+                                        | TableParameterAction::Reset => todo!(),
+                                    } //match
+                                } // unitary action
+                            } //key code
+                        } //keyCodes
+                    } //ActionInputs
+                } //Press event
+            } //event readable
+        } //loop
     }
 
     fn draw(&mut self, frame: &mut Frame) {
@@ -280,24 +287,24 @@ impl<'a> GenericMenu<'a> {
 pub fn get_default_action_input<'a>() -> Vec<ActionInputs<'a>> {
     vec![
         ActionInputs {
-            key: vec![KeyCode::Down, KeyCode::Char('s')],
-            action: TableParameterAction::NextRow,
+            key: vec![KeyCode::Down],
+            action: vec![TableParameterAction::NextRow],
         },
         ActionInputs {
-            key: vec![KeyCode::Up, KeyCode::Char('z')],
-            action: TableParameterAction::PreviousRow,
+            key: vec![KeyCode::Up],
+            action: vec![TableParameterAction::PreviousRow],
         },
         ActionInputs {
-            key: vec![KeyCode::Right, KeyCode::Char('d')],
-            action: TableParameterAction::NextValue,
+            key: vec![KeyCode::Right],
+            action: vec![TableParameterAction::NextValue],
         },
         ActionInputs {
-            key: vec![KeyCode::Left, KeyCode::Char('q')],
-            action: TableParameterAction::PreviousValue,
+            key: vec![KeyCode::Left],
+            action: vec![TableParameterAction::PreviousValue],
         },
         ActionInputs {
-            key: vec![KeyCode::Esc, KeyCode::Char('x')],
-            action: TableParameterAction::Quit,
+            key: vec![KeyCode::Esc],
+            action: vec![TableParameterAction::Quit],
         },
     ]
 }

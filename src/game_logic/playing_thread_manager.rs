@@ -1,11 +1,11 @@
 pub use crate::controls::direction::Direction;
 use crate::controls::input::playing_input_loop;
+use crate::controls::main_menu::controls_main_switch_menu;
 pub use crate::controls::speed::Speed;
 pub use crate::game_logic::fruits_manager::FruitsManager;
 use crate::game_logic::game_options::GameOptions;
 use crate::game_logic::playing_logic::playing_logic_loop;
 pub use crate::game_logic::state::{GameState, GameStatus};
-use crate::graphics::menus::main_menu::controls_main_switch_menu;
 use crate::graphics::playing_render::playing_render_loop;
 use crate::graphics::sprites::map::Map;
 use crate::graphics::sprites::snake_body::SnakeBody;
@@ -74,10 +74,10 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
         // (as parameters can change in the parameter menu)
         loop {
             //Display the menu and get the user choice: play or not
+            // (as well as others menu options of course)
             if controls_main_switch_menu(&mut terminal, &mut options) {
                 // if the player wants to play, we need to initiate some game values
-
-                // get the correct case size for display
+                //  to get the correct case size for display
                 let case_size = u16::try_from(max(
                     Span::raw(&options.body_symbol).width(),
                     Span::raw(&options.head_symbol).width(),
