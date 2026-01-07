@@ -137,8 +137,8 @@ fn game_state_render(state: &GameStatus, frame: &mut Frame) -> bool {
         GameStatus::Paused => {
             menus::messages::pause_paragraph(frame);
         }
-        GameStatus::GameOver => {
-            menus::messages::game_over_paragraph(frame);
+        GameStatus::GameOver(selection) => {
+            menus::messages::game_over_paragraph(frame, selection);
         }
         GameStatus::ByeBye => {
             menus::messages::byebye_paragraph(frame);

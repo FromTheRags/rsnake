@@ -1,4 +1,4 @@
-use crate::controls::input::{QUIT_KEYS, START_KEYS};
+use crate::controls::playing_input::{QUIT_KEYS, START_KEYS};
 use crate::game_logic::game_options::GameOptions;
 use crate::graphics::menus::main_menu::SwitchMenu::{
     Doc, Fruits, Highs, Main, Parameters, Run, Speed,
@@ -19,9 +19,9 @@ const FRUITS_KEYS: [KeyCode; 2] = [KeyCode::Char('f'), KeyCode::Char('F')];
 const VELOCITY_KEYS: [KeyCode; 2] = [KeyCode::Char('s'), KeyCode::Char('P')];
 const HELP_KEYS: [KeyCode; 2] = [KeyCode::Char('d'), KeyCode::Char('D')];
 const HIGH_SCORE_KEYS: [KeyCode; 2] = [KeyCode::Char('h'), KeyCode::Char('H')];
-const NEXT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::Up];
-const PREVIOUS_KEYS: [KeyCode; 3] = [KeyCode::Left, KeyCode::Backspace, KeyCode::Down];
-const ENTER_KEYS: [KeyCode; 2] = [KeyCode::Enter, KeyCode::End];
+pub const NEXT_KEYS: [KeyCode; 2] = [KeyCode::Right, KeyCode::Up];
+pub const PREVIOUS_KEYS: [KeyCode; 3] = [KeyCode::Left, KeyCode::Backspace, KeyCode::Down];
+pub const ENTER_KEYS: [KeyCode; 2] = [KeyCode::Enter, KeyCode::End];
 /// The control part of the main menu
 /// allows switching to a submenu (Fruits, Speed, Parameters, etc.)
 /// Use `MainMenuInput` to known which keys have been used

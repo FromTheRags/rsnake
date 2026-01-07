@@ -1,6 +1,6 @@
 pub use crate::controls::direction::Direction;
-use crate::controls::input::playing_input_loop;
 use crate::controls::main_menu::controls_main_switch_menu;
+use crate::controls::playing_input::playing_input_loop;
 pub use crate::controls::speed::Speed;
 pub use crate::game_logic::fruits_manager::FruitsManager;
 use crate::game_logic::game_options::GameOptions;

@@ -19,15 +19,46 @@
 //! ```
 //!
 
+/// Represents the possible options in the Game Over menu.
+#[derive(Debug, Clone, PartialEq, Copy, Default)]
+pub enum GameOverMenu {
+    #[default]
+    // Because restart is the selected option by default after GameOver but will not restart
+    // automatically unless pressing an entrance key or R
+    Restart,
+    Menu,
+    Quit,
+}
+
+impl GameOverMenu {
+    #[must_use]
+    pub fn next(self) -> Self {
+        match self {
+            Self::Restart => Self::Menu,
+            Self::Menu => Self::Quit,
+            Self::Quit => Self::Restart,
+        }
+    }
+
+    #[must_use]
+    pub fn previous(self) -> Self {
+        match self {
+            Self::Restart => Self::Quit,
+            Self::Menu => Self::Restart,
+            Self::Quit => Self::Menu,
+        }
+    }
+}
+
 /// Represents the possible states of the game.
 #[derive(Debug, Clone, PartialEq)]
 pub enum GameStatus {
-    Paused,     // The game is currently paused
-    GameOver,   // The game has ended
-    ByeBye,     // The game has exited
-    Playing,    // The game is in progress
-    Restarting, // The game is restarting
-    Menu,       // The game is going or displaying the Main Menu
+    Paused,                 // The game is currently paused
+    GameOver(GameOverMenu), // The game has ended, default selected option in attribute
+    ByeBye,                 // The game has exited
+    Playing,                // The game is in progress
+    Restarting,             // The game is restarting
+    Menu,                   // The game is going or displaying the Main Menu
 }
 
 /// Manages the game state, including life count, score, and current status.

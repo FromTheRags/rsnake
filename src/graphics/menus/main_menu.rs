@@ -58,14 +58,15 @@ fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
     );
 }
 /// Represents a button in the menu interface
-struct Button {
-    name: &'static str,
-    selected: bool,
+pub struct Button {
+    pub name: &'static str,
+    pub selected: bool,
 }
 
 impl Button {
     /// Creates a new button with the given name and hotkey
-    const fn new(name: &'static str) -> Self {
+    #[must_use]
+    pub const fn new(name: &'static str) -> Self {
         Self {
             name,
             selected: false,
@@ -73,12 +74,13 @@ impl Button {
     }
 
     /// Sets the selected state of the button
-    fn selected(&mut self, selected: bool) {
+    pub fn selected(&mut self, selected: bool) {
         self.selected = selected;
     }
 
     /// Converts the button to a vector of spans for rendering
-    fn to_spans(&self) -> Vec<Span<'static>> {
+    #[must_use]
+    pub fn to_spans(&self) -> Vec<Span<'static>> {
         if self.selected {
             vec![
                 Span::styled(" [ ", Style::default().fg(Color::Red)).add_modifier(Modifier::BOLD),

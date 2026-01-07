@@ -1,5 +1,11 @@
-use crate::graphics::menus::utils_layout::render_full_centered_paragraph;
+use crate::game_logic::state::GameOverMenu;
+use crate::graphics::menus::main_menu::Button;
+use crate::graphics::menus::utils_layout::{
+    frame_vertically_centered_rect, render_full_centered_paragraph,
+};
 use ratatui::style::Color;
+use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 // For ASCII art use AI or a generator as:
@@ -27,10 +33,7 @@ const GAME_OVER_TEXT: &str = "\n\
 ██║ ████║███████║██╔████╔██║█████╗        ██║   ██║██║   ██║█████╗  ██████╔╝\n\
 ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝        ██║   ██║██║   ██║██╔══╝  ██╔══██╗\n\
 ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗      ╚██████╔╝╚██████╔╝███████╗██║  ██║\n\
- ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝       ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝\n\
-                       Press R to restart the game ! \n\
-                       Press M to go back to menu ! \n\
-                       Press Q to quit ! ";
+ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝       ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝";
 
 const PAUSE_TEXT: &str = "\n\
 ██████╗  █████╗ ██╗   ██╗███████╗███████╗\n\
@@ -64,8 +67,33 @@ const RESTART_TEXT: &str = "\n\
 ██║  ██║███████╗███████║   ██║   ██║  ██║██║  ██║   ██║   
 ╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ";
 
-pub fn game_over_paragraph(frame: &mut Frame) {
-    render_full_centered_paragraph(frame, GAME_OVER_TEXT, Some(Color::Red));
+pub fn game_over_paragraph(frame: &mut Frame, selection: &GameOverMenu) {
+    let mut lines = vec![];
+    for logo_line in GAME_OVER_TEXT.lines() {
+        lines.push(Line::from(logo_line).style(ratatui::style::Style::default().fg(Color::Red)));
+    }
+
+    let mut restart_button = Button::new("Restart 🎮");
+    let mut menu_button = Button::new("Menu 🗺");
+    let mut quit_button = Button::new("Quit ");
+
+    restart_button.selected(selection == &GameOverMenu::Restart);
+    menu_button.selected(selection == &GameOverMenu::Menu);
+    quit_button.selected(selection == &GameOverMenu::Quit);
+
+    let mut combined_spans: Vec<Span> = restart_button.to_spans();
+    combined_spans.extend(menu_button.to_spans());
+    combined_spans.extend(quit_button.to_spans());
+    lines.push(Line::from(combined_spans));
+
+    let nb_lines = lines.len();
+    frame.render_widget(
+        Paragraph::new(Text::from(lines)).centered(),
+        frame_vertically_centered_rect(frame.area(), nb_lines),
+    );
+    //NB: no red everywhere on blokc as with "//.style(ratatui::style::Style::default().fg(Color::Red)),"
+    //Because otherwise the button's color of the game over screen will be lost
+    frame.render_widget(ratatui::widgets::Block::default(), frame.area());
 }
 pub fn pause_paragraph(frame: &mut Frame) {
     render_full_centered_paragraph(frame, PAUSE_TEXT, None);

@@ -1,6 +1,6 @@
 use crate::controls::direction::Direction;
 use crate::game_logic::fruits_manager::FruitsManager;
-use crate::game_logic::state::{GameState, GameStatus};
+use crate::game_logic::state::{GameOverMenu, GameState, GameStatus};
 use crate::graphics::sprites::fruit::Fruit;
 use crate::graphics::sprites::map::Map;
 use crate::graphics::sprites::snake_body::SnakeBody;
@@ -54,7 +54,8 @@ pub fn playing_logic_loop(
                         state_guard.life -= 1;
                     }
                     if state_guard.life == 0 {
-                        state_guard.status = GameStatus::GameOver;
+                        //The GameOverMenu option will be used to store the user selection of what to do
+                        state_guard.status = GameStatus::GameOver(GameOverMenu::default());
                     }
                 }
             }
@@ -68,7 +69,7 @@ pub fn playing_logic_loop(
                 //graphical resize on rendering part (not really a game_logic constant)
             }
             GameStatus::ByeBye | GameStatus::Menu => break,
-            GameStatus::Paused | GameStatus::GameOver => {}
+            GameStatus::Paused | GameStatus::GameOver(_) => {}
         }
         sleep(Duration::from_millis(game_speed));
     }

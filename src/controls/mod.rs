@@ -10,6 +10,6 @@
 //!
 
 pub mod direction;
-pub mod input;
 pub mod main_menu;
+pub mod playing_input;
 pub mod speed;
