@@ -26,9 +26,10 @@ use ratatui::widgets::WidgetRef;
 /// Distribution statistics with weighted lottery / pie chart parts.
 /// image, score, probability, size effect
 ///Yet pear, or strawberry ("🍓", 60, 5, 15),
+/// In order: Symbol, score effect, probability, size effect
 pub const FRUITS_SCORES_PROBABILITIES: &[(&str, i32, u16, i16)] = &[
     ("🦞", -50, 5, -150),
-    ("🥥", 0, 5, -40),
+    ("🥥", -10, 5, -40),
     ("🍇", 5, 4, 0),
     ("🍐", 10, 10, 5),
     ("🥝", 20, 10, 8),

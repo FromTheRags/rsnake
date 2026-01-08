@@ -1,5 +1,7 @@
 use crate::controls::direction::Direction;
+use crate::controls::speed::Speed;
 use crate::game_logic::fruits_manager::FruitsManager;
+use crate::game_logic::high_score::{HighScore, HighScoreManager};
 use crate::game_logic::state::{GameOverMenu, GameState, GameStatus};
 use crate::graphics::sprites::fruit::Fruit;
 use crate::graphics::sprites::map::Map;
@@ -17,7 +19,7 @@ pub fn playing_logic_loop(
     gs: &Arc<RwLock<GameState>>,
     carte: &Arc<RwLock<Map>>,
     fruits_manager: &Arc<RwLock<FruitsManager>>,
-    (game_speed, speed_score_modifier, classic_mode): (u64, u16, bool),
+    (game_speed, snake_symbols, classic_mode): (Speed, String, bool),
 ) {
     let mut gsc;
     loop {
@@ -43,7 +45,18 @@ pub fn playing_logic_loop(
                     //NB:Converting an u16 to an i32 is always safe in Rust because the range of u16 (0 to 65,535)
                     // fits entirely within the range of i32 (−2,147,483,648 to 2,147,483,647).
                     //So no need to do: speed_score_modifier.try_into().expect("too much")/match for conversion
-                    gs.write().unwrap().score += score_fruits * i32::from(speed_score_modifier);
+                    let fruit_impact = score_fruits * i32::from(game_speed.score_modifier());
+                    let mut state_guard_gs = gs.write().unwrap();
+                    // to always keep the score positive and between bounds
+                    if fruit_impact < 0 {
+                        state_guard_gs.score = state_guard_gs
+                            .score
+                            .saturating_sub(fruit_impact.unsigned_abs());
+                    } else {
+                        state_guard_gs.score = state_guard_gs
+                            .score
+                            .saturating_add(fruit_impact.unsigned_abs());
+                    }
                     fruits_manager.write().unwrap().replace_fruits(&fruits);
                 }
                 // Check if the gamer will lose one life
@@ -56,6 +69,18 @@ pub fn playing_logic_loop(
                     if state_guard.life == 0 {
                         //The GameOverMenu option will be used to store the user selection of what to do
                         state_guard.status = GameStatus::GameOver(GameOverMenu::default());
+
+                        // Save High Score
+                        if let Ok(manager) = HighScoreManager::new() {
+                            let score_value: u32 = state_guard.score;
+                            let _ = manager.save_score(&HighScore::new(
+                                snake_symbols.clone(),
+                                score_value,
+                                //using Display implementation
+                                game_speed.to_string(),
+                            ));
+                            state_guard.rank = manager.get_rank(score_value).unwrap_or(None);
+                        }
                     }
                 }
             }
@@ -71,6 +96,6 @@ pub fn playing_logic_loop(
             GameStatus::ByeBye | GameStatus::Menu => break,
             GameStatus::Paused | GameStatus::GameOver(_) => {}
         }
-        sleep(Duration::from_millis(game_speed));
+        sleep(Duration::from_millis(game_speed.ms_value()));
     }
 }

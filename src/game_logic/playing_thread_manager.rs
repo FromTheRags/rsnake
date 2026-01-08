@@ -127,9 +127,10 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
 
         //if we want to have a variable speed put it under an Arc<Rw>, constant can directly be put under an Arc
         // or share as a normal variable by copy
-        let game_speed = self.speed.ms_value();
-        let speed_score_modifier = self.speed.score_modifier();
+        //Game speed is a constant by game, so we can clone it normally
+        let current_game_speed = self.speed;
         let classic = self.options.classic_mode;
+        let snake_symbols = format!("{}{}", self.options.head_symbol, self.options.body_symbol);
         //In a scope to have auto cleaning by auto join at the end of the main thread
         thread::scope(|s| {
             // Game logic thread
@@ -140,7 +141,7 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
                     &logic_gs,
                     &carte,
                     &fruits_manager,
-                    (game_speed, speed_score_modifier, classic),
+                    (current_game_speed, snake_symbols, classic),
                 );
             });
             // input logic thread

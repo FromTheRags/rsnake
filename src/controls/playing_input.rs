@@ -48,8 +48,9 @@ pub fn playing_input_loop(direction: &Arc<RwLock<Direction>>, gs: &Arc<RwLock<Ga
                         }
                     }
                 }
+                //We keep an if and not an else if, to keep keyboard shortcut working on game over screen
                 //PAUSE
-                else if PAUSE_KEYS.contains(&key.code) {
+                if PAUSE_KEYS.contains(&key.code) {
                     //in others state does nothing to not break game_logic logic
                     if gs_guard.status == GameStatus::Playing {
                         gs_guard.status = GameStatus::Paused;

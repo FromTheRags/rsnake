@@ -1,3 +1,4 @@
+use crate::game_logic::high_score::HighScoreManager;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     get_default_action_input, CellValue, FooterData, GenericMenu, RowData,
 };
@@ -13,47 +14,33 @@ pub fn setup_and_run_highs_table_parameters(terminal: &mut DefaultTerminal) {
     .run(get_default_action_input(), terminal);
 }
 
-/// Loads high score information into table rows for display
+/// Loads highscore information into table rows for display
 #[must_use]
 fn load_highs_info_in_table() -> Vec<RowData> {
     let mut rows = vec![];
 
-    // TODO: Replace with actual high score loading logic from game state or file
-    let high_scores = vec![
-        (
-            1,
-            "YET TO IMPLEMENT :p ",
-            5000,
-            "Fast",
-            "09/12/2025",
-            "0.1.2",
-        ),
-        (
-            2,
-            "CONTRIBUTE TO THIS PROJECT",
-            3500,
-            "Normal",
-            "01/01/2025",
-            "0.1.2",
-        ),
-        (
-            3,
-            "TO HAVE THIS FEATURE",
-            1200,
-            "Slow",
-            "31/12/2024",
-            "0.1.1",
-        ),
-    ];
+    if let Ok(manager) = HighScoreManager::new() {
+        let high_scores = manager.get_top_scores();
+        for (index, score) in high_scores.into_iter().enumerate() {
+            rows.push(RowData::new(vec![
+                CellValue::new(format!("#{}", index + 1)),
+                CellValue::new(score.symbols),
+                CellValue::new(format!("{}", score.score)),
+                CellValue::new(score.speed),
+                CellValue::new(score.date.format("%d/%m/%Y").to_string()),
+                CellValue::new(score.version),
+            ]));
+        }
+    }
 
-    for (rank, symbols, score, speed, date, version) in high_scores {
+    if rows.is_empty() {
         rows.push(RowData::new(vec![
-            CellValue::new(format!("#{rank}")),
-            CellValue::new(symbols.to_string()),
-            CellValue::new(format!("{score}")),
-            CellValue::new(speed.to_string()),
-            CellValue::new(date.to_string()),
-            CellValue::new(version.to_string()),
+            CellValue::new("No scores".to_string()),
+            CellValue::new("Play the game!".to_string()),
+            CellValue::new("🐍".to_string()),
+            CellValue::new("-".to_string()),
+            CellValue::new("-".to_string()),
+            CellValue::new("-".to_string()),
         ]));
     }
 
@@ -67,9 +54,9 @@ fn highs_get_headers() -> Vec<String> {
         "🏆 Rank".to_string(),
         "👤 Head & Body".to_string(),
         "🎯 Score".to_string(),
-        "🏁 Speed".to_string(),
+        "🏁 Celerity ".to_string(),
         "📅 Date".to_string(),
-        "🏷️ Version".to_string(),
+        "🐍 Version".to_string(),
     ]
 }
 

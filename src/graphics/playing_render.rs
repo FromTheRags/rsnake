@@ -112,7 +112,13 @@ pub fn playing_render_loop<'a: 'b, 'b>(
                 }
 
                 // And game_logic status
-                rendering_break = game_state_render(&state.read().unwrap().status, frame);
+                let state_guard = state.read().unwrap();
+                rendering_break = game_state_render(
+                    &state_guard.status,
+                    state_guard.score,
+                    state_guard.rank,
+                    frame,
+                );
             })
             .expect("bad rendering, check sprites position");
         if rendering_break {
@@ -131,14 +137,19 @@ pub fn playing_render_loop<'a: 'b, 'b>(
     }
 }
 /// Return whether stop the rendering
-fn game_state_render(state: &GameStatus, frame: &mut Frame) -> bool {
+fn game_state_render(
+    state: &GameStatus,
+    score: u32,
+    rank: Option<usize>,
+    frame: &mut Frame,
+) -> bool {
     let mut rendering_break = false;
     match state {
         GameStatus::Paused => {
             menus::messages::pause_paragraph(frame);
         }
         GameStatus::GameOver(selection) => {
-            menus::messages::game_over_paragraph(frame, selection);
+            menus::messages::game_over_paragraph(frame, selection, score, rank);
         }
         GameStatus::ByeBye => {
             menus::messages::byebye_paragraph(frame);

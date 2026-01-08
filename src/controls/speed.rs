@@ -26,6 +26,8 @@
 
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 /// Contains all configuration data for a speed level
 #[derive(Debug, Copy, Clone)]
@@ -77,6 +79,15 @@ pub enum Speed {
     Normal,
     Fast,
     Crazy,
+}
+impl Display for Speed {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            format!("{}{}", self.name().to_string(), self.symbol())
+        )
+    }
 }
 
 impl Speed {

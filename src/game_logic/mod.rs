@@ -13,6 +13,7 @@
 
 pub mod fruits_manager;
 pub mod game_options;
+pub mod high_score;
 pub mod playing_logic;
 pub mod playing_thread_manager;
 pub mod state;

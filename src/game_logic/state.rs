@@ -64,10 +64,11 @@ pub enum GameStatus {
 /// Manages the game state, including life count, score, and current status.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GameState {
-    pub life: u16,          // Current player life count
-    pub score: i32,         // Current player score
-    pub status: GameStatus, // Current game status
-    life_ini: u16,          // Initial life count (used for reset)
+    pub life: u16,           // Current player life count
+    pub score: u32,          // Current player score
+    pub status: GameStatus,  // Current game status
+    pub rank: Option<usize>, // Rank in high scores if game over
+    life_ini: u16,           // Initial life count (used for reset)
 }
 
 impl GameState {
@@ -84,6 +85,7 @@ impl GameState {
             life,
             score: 0,
             status: GameStatus::Playing,
+            rank: None,
             life_ini: life,
         }
     }
@@ -92,6 +94,7 @@ impl GameState {
     pub fn reset(&mut self) {
         self.score = 0;
         self.status = GameStatus::Playing;
+        self.rank = None;
         self.life = self.life_ini;
     }
 }
