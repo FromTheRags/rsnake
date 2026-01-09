@@ -17,4 +17,5 @@ jobs:
           cargo miri setup
       - name: Test with Miri
         #unmanaged starting a new process
-        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test -- --skip cli_integration_test
+        #unmanaged sled unsafe call to libc::getrlimit
+        run: MIRIFLAGS=-Zmiri-disable-isolation cargo miri test -- --skip game_logic::high_score, cli_integration_test

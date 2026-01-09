@@ -82,11 +82,7 @@ pub enum Speed {
 }
 impl Display for Speed {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            format!("{}{}", self.name().to_string(), self.symbol())
-        )
+        write!(f, "{}{}", self.name(), self.symbol())
     }
 }
 

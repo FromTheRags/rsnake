@@ -25,12 +25,25 @@ impl HighScore {
         }
     }
 }
-/// To use something else than SQL DB ;)
-/// Sled database guarantees that its iterators, including those returned by db.iter() and db.range(),
-/// will return elements in lexicographical order of their keys. (as raw byte slices)
-/// This is a fundamental feature of sled because it is built upon a $\text{Bw-Tree}$ structure, which is a type of ordered, persistent tree.
-/// the sorting is strictly lexicographical, you must ensure that multi-byte numeric keys are stored in Big-Endian byte order.
-/// Big-Endian (BE): Stores the Most Significant Byte (MSB) first. This is required for correct lexicographical sorting of numbers.
+/// # Motivation for this DB
+/// To use something else than SQL DB to change ;) Top-edge DB
+/// For a more rock solid DB in Rust use redb (more typed (no manuel BE management), more stable, less innovant)
+/// # Strengths
+/// - Sled database guarantees that its iterators, including those returned by `db.iter()` and `db.range()`,
+///   will return elements in lexicographical order of their keys. (as raw byte slices)
+/// - This is a fundamental feature of sled because it is built upon a $\text{Bw-Tree}$ structure, which is a type of ordered, persistent tree.
+/// - The sorting is strictly lexicographical; you must ensure that multibyte numeric keys are stored in Big-Endian byte order.
+/// - Big-Endian (BE): Stores the Most Significant Byte (MSB) first. This is required for correct lexicographical sorting of numbers.
+/// # To explore the DB content by hands:
+/// - cargo install sledcli
+/// - hex or str to change the view
+/// - Pairs or keys
+/// # Why TOML serialisation
+/// - Provide a better visualization by hands
+/// - Not too much data, TOML overhead is unseen
+/// - Already used for arguments serialisation, avoid a new dependency
+///   (and the bincode crate story is a lesson-teller)
+/// - NB: on other projects with others constrains postcard,rkyv,or borsh
 pub struct HighScoreManager {
     db: Db,
 }
@@ -207,9 +220,8 @@ mod tests {
 
         let scores = vec![200, 50, 100];
         for s in scores {
-            HighScore::new("S•".to_string(), s, "Normal 🐢".into());
             manager
-                .save_score(&HighScore::new("S".to_string(), s, "Normal".into()))
+                .save_score(&HighScore::new("S".to_string(), s, "Normal 🐢".into()))
                 .unwrap();
         }
 
