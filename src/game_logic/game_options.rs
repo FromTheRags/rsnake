@@ -16,9 +16,8 @@ use toml::Table;
 use unicode_segmentation::UnicodeSegmentation;
 /// Initial position of the snake's head at the start of the game
 pub const INI_POSITION: Position = Position { x: 50, y: 5 };
-pub const SAVE_FILE: &str = "snake_config.toml";
 //Options to not display in the table menu in-game parameters
-pub const ONLY_FOR_CLI_PARAMETERS: [&str; 3] = ["save", "load", "no-"];
+pub const ONLY_FOR_CLI_PARAMETERS: [&str; 2] = ["load", "no-"];
 //Later auto generates the header based on the help message as the in-game table menu
 #[allow(clippy::needless_raw_string_hashes)]
 const PARAMS_HEADER: &str = r#"
@@ -27,60 +26,51 @@ const PARAMS_HEADER: &str = r#"
 # classic_mode:     true for classic rules (walls kill, no wrapping)
 # uncaps_fps:       disables frame limiting (true = no limit) 
 # life:             starting lives
-# nb_of_fruit:      number of fruits available in the game at once
+# nb_of_fruits:     number of fruits available in the game at once
 # body_symbol:      character for the snake's body  
 # head_symbol:      character for the snake's head
 # snake_length:     initial length of the snake
 # speed:            speed of the snake (Slow, Normal, Fast, Crazy)
-# save/load:        save/load game parameters to/from file, not very useful from a file, but useful from the CLI
 "#;
-/// Define game parameters with their valid ranges
-/// Format expected: `define_args_with_ranges`! {
-///    x: 1 => 999,
-///    y: 1 => 99,
-/// }
-/// To have some fun with basic macro and to facilitate parsing for the in-game menu
-/// (avoid help text parsing, avoid global variable (or lazy init as hashmap cannot be global), avoid eternal crate, add metadata like all flattening)
-/// This macro creates:
-/// 1. A function to get parameter ranges
-/// 2. A parameter parser functions for use with clap
-///    NB: to avoid the &str, a proc macro reading the parameter name of the cli struct is needed (too heavy for the benefits)
-macro_rules! define_args_with_ranges {
-    (
-        $( $field_name:ident: $min:expr => $max:expr ),* $(,)?
-    ) => {
-        /// define a const to avoid str errors
-        $(const $field_name: &str = stringify!($field_name);)*
-        /// Returns the valid range for the parameter in O(1) or None
-        #[must_use] pub fn get_parameter_range(param_name: &str) -> Option<std::ops::RangeInclusive<u16>> {
-            let idiomatic =param_name.to_string().replace("-","_").to_uppercase();
-            match idiomatic.as_str() {
-                $(
-                    stringify!($field_name) => Some($min..=$max)
-                    ,
-                )*
-                _ => None,
-            }
+
+///To be able to iterate over range in a meta-way, see in table parameter very useful
+macro_rules! define_args_withs {
+   (
+       $( $field_name:ident: $min:expr => $max:expr ),* $(,)?
+   ) => {
+       /// define a const to avoid str errors
+       $(const $field_name: &str = stringify!($field_name);)*
+       /// Returns the valid range for the parameter in O(1) or None
+       #[must_use] pub fn get_parameter_range(param_name: &str) -> Option<std::ops::RangeInclusive<u16>> {
+           let idiomatic =param_name.to_string().replace("-","_").to_uppercase();
+           match idiomatic.as_str() {
+               $(
+                stringify!($field_name) => Some($min..=$max)
+                ,
+            )*
+            _ => None,
         }
-        /// Get a clap value parser for a specific parameter or the default range of 1..99
-        #[must_use] fn get_parameter_parser(param_name: &str) -> clap::builder::RangedI64ValueParser<u16> {
-            match param_name {
-                $(
-                    stringify!($field_name) =>
-                        clap::value_parser!(u16).range($min as i64..=$max as i64)
-                    ,
-                )*
-                _ => clap::value_parser!(u16).range(1_i64..=99_i64),
-            }
+    }
+    /// Get a clap value parser for a specific parameter or the default range of 1..99
+    #[must_use] fn get_parameter_range_parser(param_name: &str) -> clap::builder::RangedI64ValueParser<u16> {
+        match param_name {
+            $(
+                stringify!($field_name) =>
+                    clap::value_parser!(u16).range($min as i64..=$max as i64)
+                ,
+            )*
+            _ => clap::value_parser!(u16).range(1_i64..=99_i64),
         }
-    };
+    }
+};
 }
-// Define all arguments and ranges in one place
+//Define all arguments and ranges in one place
 //Snake length begins at 2 to have a head and a body different
-define_args_with_ranges! {
-    SNAKE_LENGTH: 2 => 999,
-    LIFE: 1 => 99,
-    NB_OF_FRUITS : 1 => 999,
+define_args_withs! {
+SNAKE_LENGTH: 2 => 999,
+LIFE: 1 => 99,
+NB_OF_FRUITS : 1 => 999,
+PRESETS: 1 => 7,
 }
 const MAX_EMOJI_BY_LINE_COUNT: u16 = 19;
 //split in 2 arrays representing max emoji on one line because easier to display
@@ -169,9 +159,10 @@ pub struct GameOptions {
         short = 'n',
         long, // = SNAKE_LENGTH
         default_value_t = 10,
-        value_parser = get_parameter_parser(SNAKE_LENGTH),
-        help = format!("Defines the initial length of the snake {}",pretty_range(get_parameter_range(SNAKE_LENGTH).unwrap()))
+        value_parser = get_parameter_range_parser(SNAKE_LENGTH),
+        help = format!("Defines the initial length of the snake {}",pretty(get_parameter_range(SNAKE_LENGTH).unwrap()))
     )]
+    #[serde(alias = "SNAKE_LENGTH")]
     pub snake_length: u16,
 
     /// Number of lives
@@ -179,9 +170,10 @@ pub struct GameOptions {
         short,
         long,
         default_value_t = 3,
-        value_parser = get_parameter_parser(LIFE),
-        help = format!("Defines the initial number of lives for the player {}",pretty_range(get_parameter_range(LIFE).unwrap()))
+        value_parser = get_parameter_range_parser(LIFE),
+        help = format!("Defines the initial number of lives for the player {}",pretty(get_parameter_range(LIFE).unwrap()))
     )]
+    #[serde(alias = "LIFE")]
     pub life: u16,
 
     /// Number of fruits in the game
@@ -189,9 +181,10 @@ pub struct GameOptions {
         short = 'f',
         long,
         default_value_t = 5,
-        value_parser = get_parameter_parser(NB_OF_FRUITS),
-        help = format!("Defines the number of fruits available at once {}",pretty_range(get_parameter_range(NB_OF_FRUITS).unwrap()))
+        value_parser = get_parameter_range_parser(NB_OF_FRUITS),
+        help = format!("Defines the number of fruits available at once {}",pretty(get_parameter_range(NB_OF_FRUITS).unwrap()))
     )]
+    #[serde(alias = "nb_of_fruit", alias = "NB_OF_FRUITS")]
     pub nb_of_fruits: u16,
     /// Modern way to do CLI, two dedicated flag to set/unset the value, beginning with --no- (for false)
     /// UX better than --feature false / --feature true, better than default (no flag = false).
@@ -224,26 +217,17 @@ pub struct GameOptions {
     #[arg(long)]
     #[serde(skip, default = "default_true")]
     no_classic_mode: bool,
-    /// Save game parameters
-    /// TODO: replace with preset 1..7
-    /// `value_name("FILE`")
-    /// NB: if one-day use with a user filename, add a clap argument for autocompletion: `value_hint` = `clap::ValueHint::FilePath`
-    /// Better use preset for a game
-    #[arg(
-        long,
-        default_value_t = false,
-        help = format!("Save current game parameters to {SAVE_FILE} configuration file in the same folder as the executable.")
-    )]
-    #[serde(skip, default = "default_false")]
-    pub save: bool,
     /// Load game parameters
     #[arg(
         long,
-        default_value_t = false,
-        help = format!("Load current game parameters from {SAVE_FILE} configuration file in the same folder as the executable. Override cli arguments.")
+        default_missing_value = None,
+        value_parser = get_parameter_range_parser(PRESETS),
+        help = format!("Load game parameters PRESETS configuration from {}.\
+        Files are searched in the same folder as the executable.\
+        Save from edit menu to get the template or get one from best configuration example on the repository.\
+        Override cli arguments.",pretty(get_parameter_range(PRESETS).unwrap()))
     )]
-    #[serde(skip, default = "default_false")]
-    pub load: bool,
+    pub load: Option<u16>,
 }
 
 impl GameOptions {
@@ -267,30 +251,9 @@ impl GameOptions {
             .collect::<String>()
     }
     pub fn emojis_iterator() -> impl Iterator<Item = String> {
-        DISPLAYABLE_EMOJI
-            .iter()
-            .map(std::string::ToString::to_string)
+        DISPLAYABLE_EMOJI.iter().map(ToString::to_string)
     }
 
-    /// Save the current parameters to a TOML file
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the file cannot be created or written to.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the game parameters cannot be serialized to TOML.
-    pub fn save_to_toml<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
-        self.save = false;
-        self.load = false;
-        let toml_string =
-            toml::to_string_pretty(self).expect("Failed to serialize GameParameters to TOML");
-        let full_output = format!("{PARAMS_HEADER}\n{toml_string}");
-        let mut file = File::create(path)?;
-        file.write_all(full_output.as_bytes())?;
-        Ok(())
-    }
     /// To be editable easily
     /// # Panics
     /// if self cannot be parsed (not possible)
@@ -301,6 +264,39 @@ impl GameOptions {
         toml_string.parse::<Table>().expect("invalid doc")
     }
 
+    /// Validates and clamps the parameters to their allowed ranges.
+    /// Ensures that numeric values are within the bounds defined in the CLI macro
+    /// and that symbols are exactly one grapheme long.
+    /// Enums are already checked automatically during deserialization
+    pub fn validate(&mut self) {
+        clamp_to(&mut self.snake_length, get_parameter_range(SNAKE_LENGTH));
+        clamp_to(&mut self.life, get_parameter_range(LIFE));
+        clamp_to(&mut self.nb_of_fruits, get_parameter_range(NB_OF_FRUITS));
+        if let Some(preset) = &mut self.load {
+            clamp_to(preset, get_parameter_range(PRESETS));
+            //self.load = Some(preset.clamp(*PRESETS.start(), *PRESETS.end()));
+        }
+        // Symbols check: Head and body must be exactly one grapheme.
+        // If invalid, they are reset to default emojis.
+        if self.head_symbol.graphemes(true).count() != 1 {
+            self.head_symbol = DISPLAYABLE_EMOJI[34].to_string();
+        }
+        if self.body_symbol.graphemes(true).count() != 1 {
+            self.body_symbol = DISPLAYABLE_EMOJI[35].to_string();
+        }
+    }
+
+    /// Load parameters from a preset TOML configuration
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the preset file cannot be opened or read, or if it contains invalid TOML.
+    pub fn load_from_toml_preset(preset: u16) -> io::Result<Self> {
+        let path = format!("snake_preset_{preset}.toml");
+        let mut params = Self::load_from_toml(path)?;
+        params.load = Some(preset);
+        Ok(params)
+    }
     /// Load parameters from a TOML file
     ///
     /// # Errors
@@ -310,33 +306,50 @@ impl GameOptions {
     /// # Panics
     ///
     /// Panic if the file contents cannot be deserialized as valid TOML.
-    pub fn load_from_toml<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        // Later: apply the same restrictions as CLI with a clamp
+    fn load_from_toml<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let mut file = File::open(path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-        let params =
+        let mut params: Self =
             toml::from_str(&contents).expect("Failed to deserialize GameParameters from TOML");
+        params.validate();
         Ok(params)
     }
-    /// Load parameters from a preset TOML configuration
+    /// Save parameters to a preset TOML configuration
     ///
     /// # Errors
     ///
-    /// Returns an error if the preset file cannot be opened or read, or if it contains invalid TOML.
-    pub fn load_from_toml_preset(_preset: usize) -> io::Result<Self> {
-        //DRAFT !!
-        // Later: apply same restrictions as CLI with a clamp
-        let mut file = File::open("")?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        let params =
-            toml::from_str(&contents).expect("Failed to deserialize GameParameters from TOML");
-        Ok(params)
+    /// Returns an error if the preset file cannot be created or written to.
+    pub fn save_to_toml_preset(&mut self, preset: u16) -> io::Result<()> {
+        let path = format!("snake_preset_{preset}.toml");
+        self.save_to_toml(path)
+    }
+    /// Save the current parameters to a TOML file
+    /// NB: non-serializable parameters are marked skip with serde annotation and will not be included
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be created or written to.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the game parameters cannot be serialized to TOML.
+    fn save_to_toml<P: AsRef<Path>>(&mut self, path: P) -> io::Result<()> {
+        let toml_string =
+            toml::to_string_pretty(self).expect("Failed to serialize GameParameters to TOML");
+        let full_output = format!("{PARAMS_HEADER}\n{toml_string}");
+        let mut file = File::create(path)?;
+        file.write_all(full_output.as_bytes())?;
+        Ok(())
     }
 }
 
-fn pretty_range(r: RangeInclusive<u16>) -> String {
+fn clamp_to(value: &mut u16, range: Option<RangeInclusive<u16>>) {
+    if let Some(range) = range {
+        let (min, max) = range.into_inner();
+        *value = (*value).clamp(min, max);
+    }
+}
+fn pretty(r: RangeInclusive<u16>) -> String {
     format!("[{}-{}]", r.start(), r.end()).to_string()
 }
 // Serde trick
@@ -348,7 +361,7 @@ fn default_false() -> bool {
 }
 
 impl ActionParameter for GameOptions {
-    fn apply(&mut self, rows: &[RowData]) {
+    fn apply_and_save(&mut self, rows: &[RowData], current_preset: Option<u16>) {
         let command = GameOptions::command();
         let prog_name = command.get_name().to_string();
         let mut new_args = vec![prog_name];
@@ -385,9 +398,89 @@ impl ActionParameter for GameOptions {
         }
         // Update all the game options as a reparsing (only one way to update value to check).
         // Some debate over the utility of this feature for clap, but widely used to update from env / configuration
-        //  Allows keeping the struct for cli parameter as a model object, feeding it with different streams of data.
-        // The backup solution is to serialize the current value in TOML and load them in game_options as already done for the file saving
+        // Allows keeping the struct for cli parameter as a model object, feeding it with different streams of data.
+        // The backup solution is to serialize all the current values in TOML and load them in game_options as already done for the file saving
         // (safe as constraints in-game value)
         self.update_from(new_args);
+        //If we are on a custom preset, save it (before resetting values)
+        if let Some(preset) = current_preset {
+            let _ = self.save_to_toml_preset(preset);
+        }
+        self.load = current_preset;
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::field_reassign_with_default)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validates() {
+        let mut options = GameOptions::default();
+        // Values above max
+        options.snake_length = 1000;
+        options.life = 100;
+        options.nb_of_fruits = 1000;
+        options.load = Some(8);
+        options.validate();
+        assert_eq!(options.snake_length, 999);
+        assert_eq!(options.life, 99);
+        assert_eq!(options.nb_of_fruits, 999);
+        assert_eq!(options.load, Some(7));
+
+        // Values below or at min
+        options.snake_length = 1;
+        options.life = 0;
+        options.nb_of_fruits = 0;
+        options.load = Some(0);
+        options.validate();
+        assert_eq!(options.snake_length, 2);
+        assert_eq!(options.life, 1);
+        assert_eq!(options.nb_of_fruits, 1);
+        assert_eq!(options.load, Some(1));
+    }
+
+    #[test]
+    fn test_validate_symbols() {
+        let mut options = GameOptions::default();
+        options.head_symbol = "invalid".to_string();
+        options.body_symbol = String::new();
+        options.validate();
+        assert_eq!(options.head_symbol.graphemes(true).count(), 1);
+        assert_eq!(options.body_symbol.graphemes(true).count(), 1);
+    }
+
+    #[test]
+    fn test_save_load_preset() {
+        let mut options = GameOptions::default();
+        options.snake_length = 42;
+        let preset_idx = 7;
+        let filename = format!("snake_preset_{preset_idx}.toml");
+
+        // Save
+        options.save_to_toml_preset(preset_idx).unwrap();
+
+        // Load
+        let loaded = GameOptions::load_from_toml_preset(preset_idx).unwrap();
+        assert_eq!(loaded.snake_length, 42);
+        assert_eq!(loaded.load, Some(preset_idx));
+
+        // Cleanup
+        let _ = std::fs::remove_file(filename);
+    }
+
+    #[test]
+    fn test_load_invalid_toml_clamped() {
+        let preset_idx = 7;
+        let filename = format!("snake_preset_{preset_idx}.toml");
+        let content = "SNAKE_LENGTH = 2000\nLIFE = 0\n";
+        std::fs::write(&filename, content).unwrap();
+
+        let loaded = GameOptions::load_from_toml_preset(preset_idx).unwrap();
+        assert_eq!(loaded.snake_length, 999);
+        assert_eq!(loaded.life, 1);
+
+        let _ = std::fs::remove_file(filename);
     }
 }

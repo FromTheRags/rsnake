@@ -12,6 +12,7 @@ pub fn setup_and_run_fruits_table_parameters(terminal: &mut DefaultTerminal) {
         load_fruits_info_in_table(),
         &fruits_get_headers(),
         fruits_get_footer_data(),
+        None,
     )
     .run(get_default_action_input(), terminal);
 }
@@ -51,10 +52,12 @@ fn fruits_get_footer_data() -> Vec<FooterData> {
         FooterData {
             symbol: "Esc".into(),
             text: "Return to home".into(),
+            value: None,
         },
         FooterData {
             symbol: "↕".into(),
             text: "Move".into(),
+            value: None,
         },
     ]
 }

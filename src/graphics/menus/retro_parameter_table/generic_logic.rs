@@ -15,38 +15,40 @@ use ratatui::{
 use unicode_segmentation::UnicodeSegmentation;
 
 pub trait ActionParameter {
-    fn apply(&mut self, rows: &[RowData]);
+    fn apply_and_save(&mut self, rows: &[RowData], current_preset: Option<u16>);
 }
+#[derive(Clone)]
 pub struct FooterData {
     pub symbol: String,
     pub text: String,
+    pub value: Option<u16>,
 }
 
 pub struct ActionInputs<'a> {
     pub key: Vec<KeyCode>,
     pub action: Vec<TableParameterAction<'a>>,
 }
-
+#[allow(clippy::type_complexity)]
 pub enum TableParameterAction<'a> {
     NextValue,
     PreviousValue,
     NextRow,
     PreviousRow,
-    //Genericity using a trait to allow using any reference to a type implementing ActionParameter
-    Apply(&'a mut dyn ActionParameter),
+    //logic options
     Quit,
-    //Goal for load: use the CLI fn to load from File and chain it
-    //le usize permet de keep track of the current preset loaded
+    //Genericity using a trait to allow using any reference to a type implementing ActionParameter
+    ApplyAndSave(&'a mut dyn ActionParameter),
+    //Goal for loading: use the CLI fn to load from File and chain it
+    //le u16 permet de keep track of the current preset loaded
     //Genericity using a closure to allow using any fn to load from File
-    LoadPreset(usize, fn() -> Vec<RowData>),
-    //Save current data to the current profile
-    SaveToPresetFile,
-    //at creation / loading,
-    //keep a copy of Vec<RowData> to reinitialize by swapping data and reloading interface
-    Reset,
+    LoadPreset(
+        u16,
+        fn(u16) -> (Option<Vec<RowData>>, Option<Vec<FooterData>>),
+    ),
 }
 
 // Define a generic cell value type
+#[derive(Clone)]
 pub enum CellValue {
     //either text only
     Text(String),
@@ -115,8 +117,9 @@ impl CellValue {
 
 // A row data type with only one option of changing the parameter
 // (no use case for a lateral switch, to only switch a cell).
-// Changes all the rows at all
+// Changes all the rows at once
 // Easy to adapt by having a selected cell if you need
+#[derive(Clone)]
 pub struct RowData {
     // The column cells inside the row
     pub cells: Vec<CellValue>,
@@ -150,14 +153,19 @@ pub struct GenericMenu<'a> {
     scrollbar: ScrollBarCustomRetroStyle<'a>,
     selected_row: usize,
     info_footer: Paragraph<'a>,
+    info_footer_data: Vec<FooterData>,
     vertical_layout: Layout,
-    //To be generic, the table can be saved to any data structure
-    //saved_to: Option<&'a mut dyn ApplyParameter>,
+    current_preset: Option<u16>,
 }
 
 impl<'a> GenericMenu<'a> {
     #[must_use]
-    pub fn new(rows: Vec<RowData>, headers: &[String], info_footer: Vec<FooterData>) -> Self {
+    pub fn new(
+        rows: Vec<RowData>,
+        headers: &[String],
+        info_footer: Vec<FooterData>,
+        current_preset: Option<u16>,
+    ) -> Self {
         // Calculate constraints
         let column_widths = calculate_max_column_widths(&rows, headers);
         let constraints = constraint_length_from_widths(&column_widths);
@@ -172,8 +180,10 @@ impl<'a> GenericMenu<'a> {
             table_custom: TableCustomRetroStyle::new(headers, rows, 0, constraints),
             scrollbar: ScrollBarCustomRetroStyle::new(row_sum_height),
             selected_row: 0,
-            info_footer: get_formated_footer(info_footer),
+            info_footer: get_formated_footer(&info_footer),
+            info_footer_data: info_footer,
             vertical_layout,
+            current_preset,
         }
     }
 
@@ -245,15 +255,30 @@ impl<'a> GenericMenu<'a> {
                                         TableParameterAction::PreviousRow => {
                                             self.previous_row();
                                         }
-                                        TableParameterAction::Apply(action) => {
-                                            action.apply(&self.table_custom.rows);
+                                        TableParameterAction::ApplyAndSave(action) => {
+                                            action.apply_and_save(
+                                                &self.table_custom.rows,
+                                                self.current_preset,
+                                            );
                                         }
                                         TableParameterAction::Quit => {
                                             return;
                                         }
-                                        TableParameterAction::LoadPreset(_, _)
-                                        | TableParameterAction::SaveToPresetFile
-                                        | TableParameterAction::Reset => todo!(),
+                                        TableParameterAction::LoadPreset(index, loader) => {
+                                            let (new_rows, new_footer) = loader(*index);
+                                            let new_rows =
+                                                new_rows.unwrap_or(self.table_custom.rows.clone());
+                                            let new_footer =
+                                                new_footer.unwrap_or(self.info_footer_data.clone());
+                                            //Refresh all the GUI, so recreate the table with the new data and recalculate constraint
+                                            //Clean Rust way with self-overwriting
+                                            *self = Self::new(
+                                                new_rows,
+                                                &self.table_custom.headers,
+                                                new_footer,
+                                                Some(*index),
+                                            );
+                                        }
                                     } //match
                                 } // unitary action
                             } //key code

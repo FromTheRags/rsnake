@@ -9,6 +9,7 @@ pub fn setup_and_run_doc_table_parameters(terminal: &mut DefaultTerminal) {
         load_doc_info_in_table(),
         &doc_get_headers(),
         doc_get_footer_data(),
+        None,
     )
     .run(get_default_action_input(), terminal);
 }
@@ -86,10 +87,12 @@ fn doc_get_footer_data() -> Vec<FooterData> {
         FooterData {
             symbol: "Esc".into(),
             text: "Return to home".into(),
+            value: None,
         },
         FooterData {
             symbol: "↕".into(),
             text: "Move".into(),
+            value: None,
         },
     ]
 }

@@ -1,13 +1,13 @@
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     CellValue, FooterData, RowData,
 };
-use ratatui::Frame;
 use ratatui::layout::{Constraint, Margin, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Text};
 use ratatui::widgets::{
     Block, BorderType, Borders, Cell, FrameExt, HighlightSpacing, Paragraph, Row, Scrollbar,
     ScrollbarOrientation, ScrollbarState, Table, TableState,
 };
+use ratatui::Frame;
 use std::fmt;
 
 // Updated constants with emojis
@@ -77,6 +77,7 @@ pub(crate) struct TableCustomRetroStyle<'a> {
     pub(crate) state: TableState,
     table: Table<'a>,
     pub(crate) rows: Vec<RowData>,
+    pub(crate) headers: Vec<String>,
 }
 impl<'a> TableCustomRetroStyle<'a> {
     pub fn new(
@@ -85,6 +86,7 @@ impl<'a> TableCustomRetroStyle<'a> {
         selected_row: usize,
         constraints: Vec<Constraint>,
     ) -> Self {
+        let headers_vec = headers.to_vec();
         // Create a header row using the custom headers with retro styling
         let header = Row::new(headers.iter().map(|h| Cell::from(h.clone())))
             .style(Style::default().fg(Color::Black).bg(RETRO_GREY))
@@ -92,7 +94,7 @@ impl<'a> TableCustomRetroStyle<'a> {
 
         //Create highlight symbols with more visual appeal
         let mut highlight_symbols = vec![HIGHLIGHT_SYMBOL_LEFT.into()];
-        //To find the number of columns we use header len,
+        //To find the number of columns, we use header len,
         // We need the number of columns to display the right header one row below
         for _ in 1..headers.len() - 1 {
             highlight_symbols.push("".into());
@@ -117,6 +119,7 @@ impl<'a> TableCustomRetroStyle<'a> {
                     .border_style(Style::default().fg(Color::DarkGray)),
             ),
             rows,
+            headers: headers_vec,
         }
     }
     pub fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -173,18 +176,37 @@ impl<'a> TableCustomRetroStyle<'a> {
     }
 }
 #[must_use]
-pub fn get_formated_footer<'a>(data: Vec<FooterData>) -> Paragraph<'a> {
+pub fn get_formated_footer<'a>(data: &[FooterData]) -> Paragraph<'a> {
     // Create a multicolor, retro-styled footer
-    let mut info_spans = Vec::with_capacity(data.len());
-    for d in data {
+    let mut info_spans = Vec::with_capacity(data.len() + 1);
+
+    //To act differently on the last element
+    let mut iter = data.iter().peekable();
+    while let Some(d) = iter.next() {
         info_spans.push(Span::styled(
             format!("({})", d.symbol),
             Style::default().fg(RETRO_GOLD).add_modifier(Modifier::BOLD),
         ));
         info_spans.push(Span::styled(
-            format!(" {} | ", d.text),
+            format!(" {} ", d.text),
             Style::default().fg(Color::White),
         ));
+        if let Some(value) = d.value {
+            let red_style = Style::default().fg(Color::Red); //.add_modifier(Modifier::BOLD);
+            info_spans.push(Span::styled("[".to_string(), red_style));
+            info_spans.push(Span::styled(
+                value.to_string(),
+                Style::default().fg(Color::White), //.add_modifier(Modifier::BOLD),
+            ));
+            info_spans.push(Span::styled("]".to_string(), red_style));
+        }
+        //To have a closing pipe only if there are still others elements after
+        if iter.peek().is_some() {
+            info_spans.push(Span::styled(
+                " | ".to_string(),
+                Style::default().fg(Color::White),
+            ));
+        }
     }
     Paragraph::new(Line::from(info_spans)).centered()
 }

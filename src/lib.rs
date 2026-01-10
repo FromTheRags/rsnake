@@ -50,14 +50,11 @@ pub fn start_snake() {
     // get command line options and parsed them to check for errors (auto using value parser in clap)
     let mut args = GameOptions::parse();
     //println!("{}", args.to_structured_toml());
-    //load or save as wished, for the easiest use hard-coded path,as people using it will not like cli
-    if args.save {
-        args.save_to_toml(game_logic::game_options::SAVE_FILE)
-            .expect("Fail to save Snake configuration file");
-    }
-    if args.load {
-        args = GameOptions::load_from_toml(game_logic::game_options::SAVE_FILE)
-            .expect("Fail to load Snake configuration file");
+    //load args from the already saved preset if its user choice
+    if let Some(preset) = args.load {
+        args = GameOptions::load_from_toml_preset(preset).unwrap_or_else(|_| {
+            panic!("Fail to load Snake configuration file for preset {preset}")
+        });
     }
     // If everything is OK, inits terminal for rendering
     let terminal = ratatui::init();

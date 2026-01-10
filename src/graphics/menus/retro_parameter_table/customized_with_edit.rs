@@ -11,27 +11,53 @@ pub fn setup_and_run_cli_table_parameters(
     terminal: &mut DefaultTerminal,
     options: &mut GameOptions,
 ) {
+    let current_preset = options.load;
     let data: Vec<RowData> = load_parameter_cli_in_table(options);
     let mut actions = get_default_action_input();
     actions.push(ActionInputs {
         key: vec![KeyCode::Char('x'), KeyCode::Char('X')],
         action: vec![
-            TableParameterAction::Apply(options),
+            TableParameterAction::ApplyAndSave(options),
             TableParameterAction::Quit,
         ],
     });
-    actions.push(ActionInputs {
-        key: vec![KeyCode::Char('1')],
-        //Lazy init of the game options from preset 1
-        action: vec![TableParameterAction::LoadPreset(1, || {
-            load_parameter_cli_in_table(&mut GameOptions::load_from_toml_preset(1).unwrap())
-        })],
-    });
+    // Add presets 1 to 7
+    for i in 1..=7u16 {
+        // Convert the number 'i' (1-7) into its corresponding character ('1'-'7').
+        // unwrap() is safe here because 'i' is between 1 and 7 (base 10),
+        // which are valid digits for char::from_digit.
+        let key_char = char::from_digit(u32::from(i), 10).unwrap();
+
+        actions.push(ActionInputs {
+            // Key is the character representation of the preset number
+            key: vec![
+                KeyCode::Char(key_char),
+                KeyCode::Char(key_char.to_ascii_uppercase()),
+            ],
+            // The action loads the preset corresponding to 'i'
+            action: vec![TableParameterAction::LoadPreset(i, |preset| {
+                let footer_updated_data = Some(parameters_cli_get_footer_data(Some(preset)));
+                //Get the GameOption struct filled by toml preset file
+                if let Ok(game_options_from_preset) =
+                    &mut GameOptions::load_from_toml_preset(preset)
+                {
+                    (
+                        Some(load_parameter_cli_in_table(game_options_from_preset)),
+                        footer_updated_data,
+                    )
+                } else {
+                    //If no preset file, nothing to do except updating the preset for saving later
+                    (None, footer_updated_data)
+                }
+            })],
+        });
+    }
     // Call Parameters screen and input management with the game options to modify
     GenericMenu::new(
         data,
         &parameters_cli_get_headers(),
-        parameters_cli_get_footer_data(),
+        parameters_cli_get_footer_data(current_preset),
+        current_preset,
     )
     .run(actions, terminal);
 }
@@ -62,7 +88,6 @@ fn load_parameter_cli_in_table(options: &mut GameOptions) -> Vec<RowData> {
                 // use the emoji vector to get them:
                 all_value_for_this_arg.extend(GameOptions::emojis_iterator());
                 //Check if the user provides an existing emoji or a brand new one
-
                 add_unique_symbol(&mut all_value_for_this_arg, options.head_symbol.clone());
                 add_unique_symbol(&mut all_value_for_this_arg, options.body_symbol.clone());
             }
@@ -83,9 +108,7 @@ fn load_parameter_cli_in_table(options: &mut GameOptions) -> Vec<RowData> {
             let mut default_str = default_value.to_string();
             //TOML crate seems to love adding apostrophes and capitalize to string value
             if default_str.contains('"') {
-                default_str = default_str.split('"').collect::<Vec<&str>>()[1]
-                    .to_string()
-                    .to_lowercase();
+                default_str = default_str.split('"').collect::<Vec<&str>>()[1].to_string();
             }
             index = all_value_for_this_arg
                 .iter()
@@ -120,23 +143,32 @@ fn parameters_cli_get_headers() -> Vec<String> {
 }
 /// Should add an action to the Footer Data (like apply, move, change value)
 #[must_use]
-fn parameters_cli_get_footer_data() -> Vec<FooterData> {
+pub fn parameters_cli_get_footer_data(current_preset: Option<u16>) -> Vec<FooterData> {
     vec![
         FooterData {
             symbol: "Esc".into(),
             text: "Quit".into(),
+            value: None,
         },
         FooterData {
             symbol: "x".into(),
-            text: "Quit & Apply".into(),
+            text: "Quit & Save".into(),
+            value: None,
         },
         FooterData {
             symbol: "↕".into(),
             text: "Move".into(),
+            value: None,
         },
         FooterData {
             symbol: "← →".into(),
             text: "Change value".into(),
+            value: None,
+        },
+        FooterData {
+            symbol: "1-7".into(),
+            text: "Load".into(),
+            value: current_preset,
         },
     ]
 }
