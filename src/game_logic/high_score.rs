@@ -35,7 +35,7 @@ impl HighScore {
 /// - The sorting is strictly lexicographical; you must ensure that multibyte numeric keys are stored in Big-Endian byte order.
 /// - Big-Endian (BE): Stores the Most Significant Byte (MSB) first. This is required for correct lexicographical sorting of numbers.
 /// # To explore the DB content by hands:
-/// - cargo install sledcli
+/// - cargo install sledcli (or use EDMA)
 /// - hex or str to change the view
 /// - Pairs or keys
 /// # Why TOML serialisation

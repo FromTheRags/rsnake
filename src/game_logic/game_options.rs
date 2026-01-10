@@ -402,11 +402,11 @@ impl ActionParameter for GameOptions {
         // The backup solution is to serialize all the current values in TOML and load them in game_options as already done for the file saving
         // (safe as constraints in-game value)
         self.update_from(new_args);
+        self.load = current_preset;
         //If we are on a custom preset, save it (before resetting values)
         if let Some(preset) = current_preset {
             let _ = self.save_to_toml_preset(preset);
         }
-        self.load = current_preset;
     }
 }
 
@@ -457,7 +457,6 @@ mod tests {
         options.snake_length = 42;
         let preset_idx = 7;
         let filename = format!("snake_preset_{preset_idx}.toml");
-
         // Save
         options.save_to_toml_preset(preset_idx).unwrap();
 
@@ -472,7 +471,7 @@ mod tests {
 
     #[test]
     fn test_load_invalid_toml_clamped() {
-        let preset_idx = 7;
+        let preset_idx = 6;
         let filename = format!("snake_preset_{preset_idx}.toml");
         let content = "SNAKE_LENGTH = 2000\nLIFE = 0\n";
         std::fs::write(&filename, content).unwrap();

@@ -27,6 +27,7 @@ jobs:
 
       - name: Run Clippy (warnings allowed, otherwise add "-- -D warnings")
         run: cargo clippy --all-targets --all-features
-
+      #1 thread otherwise delete files needs before tests end (safer for CI/CD)
       - name: Tests
-        run: cargo test --verbose
+        run: cargo test --verbose -- --test-threads=1
+

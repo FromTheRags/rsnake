@@ -5,7 +5,7 @@
 [![Build](https://github.com/FromTheRags/rsnake/actions/workflows/build.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/build.yml)
 [![Test](https://github.com/FromTheRags/rsnake/actions/workflows/test.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/test.yml)
 [![Last doc](https://img.shields.io/badge/docs-online-blue)](https://fromtherags.github.io/rsnake/rsnaker/index.html)
-[![Code lines](https://img.shields.io/badge/lines%20of%20code-3K-blue)](https://github.com/FromTheRags/rsnake)
+[![Code lines](https://img.shields.io/badge/lines%20of%20code-4K-blue)](https://github.com/FromTheRags/rsnake)
 <!-- 
 [![Code lines](https://tokei.rs/b1/github/FromTheRags/rsnake)](https://github.com/FromTheRags/rsnake)
 As tokei server seems unreliable with messages as "Invalid SHA provided."/bandwidth issues and not actively maintained 
@@ -30,13 +30,12 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 ## TODO
 
-- [ ] Add a save score (local db) with a pseudo got from cmdline
-- [ ] Add preset for saved configuration
 - [ ] Add timers to fruits ⏲️
 - [ ] Add some performance logs with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
-- [ ] Enhance all table parameters based on the generic one
-- [ ] Internal code: Provide a macro example for the trait implementation widget and this error use.
+- [x] Enhance all table parameters based on the generic one
+- [ ] Channel for keyboard input
+- [ ] Add GIF management
 
 ## 💖 Support
 
@@ -48,9 +47,13 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 - To see run options, use: `rsnake --help`
 - E.g., `rsnake -z 🐼 -b 🍥` or `cargo run -- -z 🐼 -b 🍥` (if from source)
-- To save a set of commands, create and alias or use `--save` to generate to a snake_config.toml file near the
-  executable.
-- Then load with `--load` option. [Shipped one](snake_config.toml)
+- To save a set of parameters:
+    - Use the in-game menu "edit", load a slot
+      (with a number between 1 and 7), make your modifiation with arrows keys then save with 'x'
+    - Create and alias for the CI option
+- Then load with `--load` option or using the in-game menu "edit".  
+  NB: You can download some of the [Best Configurations](Best_configurations) and put it int he same folder as the
+  executable
 
 ## Installation from release
 
