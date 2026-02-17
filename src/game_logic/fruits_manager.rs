@@ -27,9 +27,9 @@
 //!
 
 use crate::graphics::graphic_block::Position;
-use crate::graphics::sprites::fruit::{FRUITS_SCORES_PROBABILITIES, Fruit};
+use crate::graphics::sprites::fruit::{Fruit, FRUITS_SCORES_PROBABILITIES};
 use crate::graphics::sprites::map::Map;
-use rand::{Rng, rng};
+use rand::{rng, RngExt};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::Widget;
@@ -70,8 +70,7 @@ impl<'a, 'b> FruitsManager<'a, 'b> {
     /// Spawns a fruit at a random position on the map.
     fn spawn_random(carte: &Map) -> Fruit<'a> {
         let position = Self::generate_position_rounded_by_cs(carte);
-        let mut rng = rng();
-        let random_value: u16 = rng.random_range(1..100);
+        let random_value: u16 = rng().random_range(1..100);
         let mut cumulative_probability = 0;
         for &(image, score, probability, size_effect) in FRUITS_SCORES_PROBABILITIES {
             cumulative_probability += probability;

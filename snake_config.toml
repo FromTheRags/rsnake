@@ -17,5 +17,3 @@ life = 3
 nb_of_fruits = 5
 uncaps_fps = false
 classic_mode = false
-save = false
-load = false

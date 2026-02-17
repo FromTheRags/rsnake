@@ -107,7 +107,8 @@ pub struct GameOptions {
         short,
         long,
         value_enum, default_value_t = Speed::Normal,
-        help = "Sets the movement speed of the snake."
+        help = "Sets the movement speed of the snake.",
+        ignore_case = true
     )]
     pub speed: Speed,
 
@@ -227,6 +228,7 @@ pub struct GameOptions {
         Save from edit menu to get the template or get one from best configuration example on the repository.\
         Override cli arguments.",pretty(get_parameter_range(PRESETS).unwrap()))
     )]
+    #[serde(skip)]
     pub load: Option<u16>,
 }
 

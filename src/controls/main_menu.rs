@@ -100,7 +100,10 @@ pub fn controls_main_switch_menu(
         let flow = enter_menu_screen(&input, &mut selected, terminal, options);
 
         match flow {
-            MenuFlow::StayOnMainScreen => {}
+            MenuFlow::StayOnMainScreen => {
+                //for re-displaying after quiting a submenu without waiting for another input
+                display_main_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
+            }
             MenuFlow::StartGame => return true,
             MenuFlow::QuitGame => return false,
         }

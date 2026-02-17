@@ -112,7 +112,7 @@ fn load_parameter_cli_in_table(options: &mut GameOptions) -> Vec<RowData> {
             }
             index = all_value_for_this_arg
                 .iter()
-                .position(|v| v == &default_str)
+                .position(|v| v.eq_ignore_ascii_case(&default_str))
                 .unwrap_or(0);
         }
         //index = values.iter().position(|v| v == &default_str).unwrap_or(0);

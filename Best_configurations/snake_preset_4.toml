@@ -1,4 +1,3 @@
-
 # Snake Game Configuration
 # ---------------------------
 # classic_mode:     true for classic rules (walls kill, no wrapping)
@@ -18,4 +17,3 @@ life = 3
 nb_of_fruits = 20
 caps_fps = true
 classic_mode = false
-load = 4
