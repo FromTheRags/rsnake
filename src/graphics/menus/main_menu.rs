@@ -1,3 +1,4 @@
+use crate::graphics::menus::edge_snake::EdgeSnake;
 use crate::graphics::menus::messages::{CONTROLS_TABLE, SNAKE_LOGO};
 use crate::graphics::menus::utils_layout::frame_vertically_centered_rect;
 use clap::ValueEnum;
@@ -7,9 +8,13 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, BorderType, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use std::cmp::PartialEq;
-use std::thread::sleep;
-use std::time::Duration;
+use std::sync::{Mutex, OnceLock};
 use unicode_segmentation::UnicodeSegmentation;
+
+//A bit overkill, but for the example of keeping data state outside of struct,
+// initialized at first call
+// and keeping track of the edge snake emoji position around call
+static EDGE_SNAKE: OnceLock<Mutex<EdgeSnake>> = OnceLock::new();
 
 /// Print the wanted welcome screen controls
 /// Show Fruit and Speed menus alongside
@@ -25,12 +30,19 @@ pub fn display_main_menu(
         .draw(|frame| {
             let area = frame.area();
             big_snake_menu(frame, selected_switch_menu_for_display_bracket);
-            //buttons_menu(frame, &app);
             //set a border all around the terminal
             frame.render_widget(Block::bordered().border_type(BorderType::Double), area);
+
+            // Render the edge snake emojis
+            // Emojis often take 2 cells, we use width 2 to avoid clipping in some terminals
+            let mut edge_snake = EDGE_SNAKE
+                .get_or_init(|| Mutex::new(EdgeSnake::new()))
+                .lock()
+                .unwrap();
+            edge_snake.update(&area);
+            edge_snake.render(frame, &area);
         })
         .expect("Unusable terminal render");
-    sleep(Duration::from_millis(100));
 }
 
 fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
@@ -51,8 +63,8 @@ fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
     // Add a greeting message
     lines.push(Line::from("Have a good 🐍 game ! 🎮".green()));
     let nb_lines = lines.len();
+
     frame.render_widget(
-        //centered horizontally
         Paragraph::new(Text::from(lines)).centered(),
         frame_vertically_centered_rect(frame.area(), nb_lines),
     );

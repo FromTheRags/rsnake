@@ -11,6 +11,7 @@
 
 pub mod retro_parameter_table;
 
+pub mod edge_snake;
 pub mod main_menu;
 pub mod messages;
 pub mod utils_layout;

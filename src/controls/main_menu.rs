@@ -1,5 +1,6 @@
 use crate::controls::playing_input::{QUIT_KEYS, START_KEYS};
 use crate::game_logic::game_options::GameOptions;
+use crate::graphics::menus::edge_snake::SPEED_MOVING_SNAKE_SLEEP_TIME_MS;
 use crate::graphics::menus::main_menu::SwitchMenu::{
     Doc, Fruits, Highs, Main, Parameters, Run, Speed,
 };
@@ -12,6 +13,7 @@ use crate::graphics::menus::retro_parameter_table::customized_with_speed::setup_
 use crossterm::event;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::DefaultTerminal;
+use std::time::Duration;
 
 const SWITCH_MENUS_OPTION: [SwitchMenu; 6] = [Highs, Fruits, Speed, Run, Parameters, Doc];
 const PARAMETERS_KEYS: [KeyCode; 2] = [KeyCode::Char('e'), KeyCode::Char('E')];
@@ -42,7 +44,7 @@ fn enter_menu_screen(
     terminal: &mut DefaultTerminal,
     options: &mut GameOptions,
 ) -> MenuFlow {
-    //get the screen menu to display or do the action associated to the input
+    //get the screen menu to display or do the action associated with the input
     let to_display = match input {
         MainMenuInput::Enter => SWITCH_MENUS_OPTION[*selected].clone(),
         MainMenuInput::Parameters => Parameters,
@@ -92,20 +94,26 @@ pub fn controls_main_switch_menu(
     options: &mut GameOptions,
 ) -> bool {
     let mut selected = 3;
-    display_main_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
 
     loop {
-        let input = main_menu_event();
+        display_main_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
 
-        let flow = enter_menu_screen(&input, &mut selected, terminal, options);
+        //If there is an user input the screen could change, otherwise keep the same screen and go for the snake
+        if event::poll(Duration::from_millis(SPEED_MOVING_SNAKE_SLEEP_TIME_MS / 2))
+            .expect("Error polling event")
+        {
+            let input = main_menu_event();
 
-        match flow {
-            MenuFlow::StayOnMainScreen => {
-                //for re-displaying after quiting a submenu without waiting for another input
-                display_main_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
+            let flow = enter_menu_screen(&input, &mut selected, terminal, options);
+
+            match flow {
+                MenuFlow::StayOnMainScreen => {
+                    //for re-displaying after quiting a submenu without waiting for another input
+                    //display_main_menu(terminal, &SWITCH_MENUS_OPTION[selected], &edge_snake);
+                }
+                MenuFlow::StartGame => return true,
+                MenuFlow::QuitGame => return false,
             }
-            MenuFlow::StartGame => return true,
-            MenuFlow::QuitGame => return false,
         }
     }
 }
@@ -178,7 +186,7 @@ pub fn main_menu_event() -> MainMenuInput {
     }
 }
 fn flush_input_buffer() {
-    while event::poll(std::time::Duration::from_secs(0)).unwrap_or(false) {
+    while event::poll(Duration::from_secs(0)).unwrap_or(false) {
         let _ = crossterm::event::read(); // Discard any buffered events
     }
 }
