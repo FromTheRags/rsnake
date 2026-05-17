@@ -4,7 +4,7 @@ use crate::graphics::menus::retro_parameter_table::generic_logic::{
 };
 use ratatui::DefaultTerminal;
 
-/// Sets up and runs the high score table menu
+/// Sets up and runs the high-score table menu
 pub fn setup_and_run_highs_table_parameters(terminal: &mut DefaultTerminal) {
     GenericMenu::new(
         load_highs_info_in_table(),

@@ -4,8 +4,8 @@ use std::time::{Duration, Instant};
 
 pub const SPEED_MOVING_SNAKE_SLEEP_TIME_MS: u64 = 50;
 /// Spacing between snake segments.
-/// Horizontal spacing is double this value to account for TUI cell aspect ratio.
-const SEGMENT_GAP: u32 = 1;
+/// Horizontal spacing is double this value to account for a TUI cell aspect ratio.
+const SEGMENT_GAP: i32 = 1;
 /// Total number of snake segments (emojis) to display.
 const TOTAL_SEGMENTS: usize = 5;
 
@@ -22,8 +22,15 @@ pub struct EdgeSnake {
     frame_duration: Duration,
 }
 
+impl Default for EdgeSnake {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EdgeSnake {
     /// Creates a new `EdgeSnake` instance.
+    #[must_use]
     pub fn new() -> Self {
         Self {
             x: 0,
@@ -46,18 +53,7 @@ impl EdgeSnake {
         if max_x == 0 && max_y == 0 {
             return;
         }
-
-        // Ensure current position is within limits (handles resize)
-        self.x = self.x.min(max_x);
-        self.y = self.y.min(max_y);
-
-        // If not on an edge (e.g. after resize), snap to the nearest edge
-        // To keep it simple, we snap to top edge if it's internal.
-        if self.x > 0 && self.x < max_x && self.y > 0 && self.y < max_y {
-            self.y = 0;
-        }
-
-        (self.x, self.y) = Self::get_next_pos(self.x, self.y, max_x, max_y);
+        (self.x, self.y) = Self::step_along_edge(self.x, self.y, max_x, max_y, 1);
     }
     pub fn render(&self, frame: &mut ratatui::Frame, area: &Rect) {
         for (x, y) in self.get_positions(area.width, area.height) {
@@ -67,7 +63,7 @@ impl EdgeSnake {
 
     /// Computes terminal-specific boundaries for the snake.
     ///
-    /// Returns (max_x, max_y).
+    /// Returns (`max_x`, `max_y`).
     fn get_limits(width: u16, height: u16) -> (u16, u16) {
         // Emojis are 2 cells wide, so we stop at width - 2.
         let max_x = width.saturating_sub(2);
@@ -79,53 +75,65 @@ impl EdgeSnake {
 
         (max_x, max_y)
     }
+    /// Having a little fun with mathematics, as simple if condition can do the tricks also
+    /// Unified helper that steps a given number of cells along the perimeter.
+    /// A `delta` of `1` moves clockwise; `-1` moves counter-clockwise.
+    #[must_use]
+    pub fn step_along_edge(x: u16, y: u16, max_x: u16, max_y: u16, delta: i32) -> (u16, u16) {
+        // sanity checks
+        // Ensure the current position is within limits (handles resize)
+        let x = x.min(max_x);
+        let mut y = y.min(max_y);
 
-    /// Moves one cell forward along the edges in a clockwise direction.
-    fn get_next_pos(x: u16, y: u16, max_x: u16, max_y: u16) -> (u16, u16) {
-        if y == 0 && x < max_x {
-            // Top edge -> move right
-            (x + 1, 0)
-        } else if x == max_x && y < max_y {
-            // Right edge -> move down
-            (max_x, y + 1)
-        } else if y == max_y && x > 0 {
-            // Bottom edge -> move left
-            (x - 1, max_y)
-        } else if x == 0 && y > 0 {
-            // Left edge -> move up
-            (0, y - 1)
-        } else {
-            (x, y)
+        // If not on an edge (e.g., after resize), snap to the nearest edge;
+        // To keep it simple, we snap to the top edge if it's internal.
+        if x > 0 && x < max_x && y > 0 && y < max_y {
+            y = 0;
         }
-    }
+        //rectangle perimeter from maths
+        let perimeter = 2 * (max_x + max_y);
+        if perimeter == 0 {
+            return (x, y);
+        }
 
-    /// Moves one cell backward along the edges in a counter-clockwise direction.
-    fn get_prev_pos(x: u16, y: u16, max_x: u16, max_y: u16) -> (u16, u16) {
-        if x == 0 && y < max_y {
-            // Left edge (going back) -> move down
-            (0, y + 1)
-        } else if y == max_y && x < max_x {
-            // Bottom edge (going back) -> move right
-            (x + 1, max_y)
-        } else if x == max_x && y > 0 {
-            // Right edge (going back) -> move up
-            (max_x, y - 1)
-        } else if y == 0 && x > 0 {
-            // Top edge (going back) -> move left
-            (x - 1, 0)
+        // 1. Map the 2D coordinate to a 1D index (clockwise starting at 0,0)
+        let index = if y == 0 {
+            x
+        } else if x == max_x {
+            max_x + y
+        } else if y == max_y {
+            max_x + max_y + (max_x - x)
+        } else if x == 0 {
+            2 * max_x + max_y + (max_y - y)
         } else {
-            (x, y)
+            return (x, y); // Safe fallback if the position is inside the grid
+        };
+
+        // 2. Step forward or backward along the 1D ring using Euclidean modulo to handle negatives safely
+        let new_index = u16::try_from((i32::from(index) + delta).rem_euclid(i32::from(perimeter)))
+            .expect("Maths error");
+
+        // 3. Map the new 1D index back into 2D coordinates
+        if new_index <= max_x {
+            (new_index, 0)
+        } else if new_index <= max_x + max_y {
+            (max_x, new_index - max_x)
+        } else if new_index <= 2 * max_x + max_y {
+            (max_x - (new_index - max_x - max_y), max_y)
+        } else {
+            (0, max_y - (new_index - 2 * max_x - max_y))
         }
     }
 
     /// Checks if the segment at (x, y) is on a vertical edge.
     fn is_vertical(x: u16, y: u16, max_x: u16, max_y: u16) -> bool {
-        // Right edge (excluding top-right corner) or Left edge (excluding bottom-left corner)
+        // Right edge (excluding the top-right corner) or Left edge (excluding the bottom-left corner)
         (x == max_x && y > 0) || (x == 0 && y > 0 && y < max_y)
     }
 
-    /// Returns the coordinates for all snake segments, starting from the head and going TOTAL_SEGMENTS time back
-    /// Calculate each position as if size was 1, and compute an offset to do that the good number of time (different between width and height)
+    /// Returns the coordinates for all snake segments, starting from the head and going `TOTAL_SEGMENTS` time back
+    /// Calculate each position as if size was 1, and compute an offset to do that the good amount of time (different between width and height)
+    #[must_use]
     pub fn get_positions(&self, width: u16, height: u16) -> Vec<(u16, u16)> {
         let (max_x, max_y) = Self::get_limits(width, height);
         if max_x == 0 && max_y == 0 {
@@ -135,7 +143,7 @@ impl EdgeSnake {
         let mut positions = Vec::with_capacity(TOTAL_SEGMENTS);
         let (mut curr_x, mut curr_y) = (self.x, self.y);
 
-        // Snap to limits for current area
+        // Snap to limits for the current area
         curr_x = curr_x.min(max_x);
         curr_y = curr_y.min(max_y);
 
@@ -144,17 +152,13 @@ impl EdgeSnake {
 
             if i < TOTAL_SEGMENTS - 1 {
                 // Determine how much to step back for the next segment.
-                let offset = if Self::is_vertical(curr_x, curr_y, max_x, max_y) {
+                let offset: i32 = if Self::is_vertical(curr_x, curr_y, max_x, max_y) {
                     1 + SEGMENT_GAP
                 } else {
                     2 + (SEGMENT_GAP * 2)
                 };
-                // we want to get the position of the previous segment as it was a 1 size
-                // (so we come back offset time,because the rank of the element previous we want
-                // is in reality: offset x 1
-                for _ in 0..offset {
-                    (curr_x, curr_y) = Self::get_prev_pos(curr_x, curr_y, max_x, max_y);
-                }
+                // Get backward offset nth position
+                (curr_x, curr_y) = Self::step_along_edge(curr_x, curr_y, max_x, max_y, -offset);
             }
         }
 

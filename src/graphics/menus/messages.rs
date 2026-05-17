@@ -101,7 +101,7 @@ pub fn game_over_paragraph(
             ratatui::style::Style::default().fg(Color::Yellow),
         ),
     ]));
-    // if among top 10, display the ranking
+    // if among the top 10, display the ranking
     if let Some(r) = rank {
         lines.push(Line::from(vec![
             Span::raw("Ranking: "),
@@ -135,7 +135,7 @@ pub fn game_over_paragraph(
         frame_vertically_centered_rect(frame.area(), nb_lines),
     );
     //Render the frame all around the edges
-    //NB: no red everywhere on block as with "//.style(ratatui::style::Style::default().fg(Color::Red)),"
+    //NB: no red everywhere on the block as with "//.style(ratatui::style::Style::default().fg(Color::Red)),"
     //Because otherwise the button's color of the game over screen will be lost
     frame.render_widget(ratatui::widgets::Block::default(), frame.area());
 }

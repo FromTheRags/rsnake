@@ -236,55 +236,55 @@ impl<'a> GenericMenu<'a> {
     ) {
         loop {
             terminal.draw(|frame| self.draw(frame)).unwrap();
-            if let Event::Key(key) = event::read().unwrap() {
-                if key.kind == KeyEventKind::Press {
-                    for action_input in &mut actions_inputs {
-                        for key_code in action_input.key.clone() {
-                            if key_code == key.code {
-                                for unitary_tp_action in &mut action_input.action {
-                                    match unitary_tp_action {
-                                        TableParameterAction::NextValue => {
-                                            self.next_parameter_value();
-                                        }
-                                        TableParameterAction::PreviousValue => {
-                                            self.previous_parameter_value();
-                                        }
-                                        TableParameterAction::NextRow => {
-                                            self.next_row();
-                                        }
-                                        TableParameterAction::PreviousRow => {
-                                            self.previous_row();
-                                        }
-                                        TableParameterAction::ApplyAndSave(action) => {
-                                            action.apply_and_save(
-                                                &self.table_custom.rows,
-                                                self.current_preset,
-                                            );
-                                        }
-                                        TableParameterAction::Quit => {
-                                            return;
-                                        }
-                                        TableParameterAction::LoadPreset(index, loader) => {
-                                            let (new_rows, new_footer) = loader(*index);
-                                            let new_rows =
-                                                new_rows.unwrap_or(self.table_custom.rows.clone());
-                                            let new_footer =
-                                                new_footer.unwrap_or(self.info_footer_data.clone());
-                                            //Refresh all the GUI, so recreate the table with the new data and recalculate constraint
-                                            //Clean Rust way with self-overwriting
-                                            *self = Self::new(
-                                                new_rows,
-                                                &self.table_custom.headers,
-                                                new_footer,
-                                                Some(*index),
-                                            );
-                                        }
-                                    } //match
-                                } // unitary action
-                            } //key code
-                        } //keyCodes
-                    } //ActionInputs
-                } //Press event
+            if let Event::Key(key) = event::read().unwrap()
+                && key.kind == KeyEventKind::Press
+            {
+                for action_input in &mut actions_inputs {
+                    for key_code in action_input.key.clone() {
+                        if key_code == key.code {
+                            for unitary_tp_action in &mut action_input.action {
+                                match unitary_tp_action {
+                                    TableParameterAction::NextValue => {
+                                        self.next_parameter_value();
+                                    }
+                                    TableParameterAction::PreviousValue => {
+                                        self.previous_parameter_value();
+                                    }
+                                    TableParameterAction::NextRow => {
+                                        self.next_row();
+                                    }
+                                    TableParameterAction::PreviousRow => {
+                                        self.previous_row();
+                                    }
+                                    TableParameterAction::ApplyAndSave(action) => {
+                                        action.apply_and_save(
+                                            &self.table_custom.rows,
+                                            self.current_preset,
+                                        );
+                                    }
+                                    TableParameterAction::Quit => {
+                                        return;
+                                    }
+                                    TableParameterAction::LoadPreset(index, loader) => {
+                                        let (new_rows, new_footer) = loader(*index);
+                                        let new_rows =
+                                            new_rows.unwrap_or(self.table_custom.rows.clone());
+                                        let new_footer =
+                                            new_footer.unwrap_or(self.info_footer_data.clone());
+                                        //Refresh all the GUI, so recreate the table with the new data and recalculate constraint
+                                        //Clean Rust way with self-overwriting
+                                        *self = Self::new(
+                                            new_rows,
+                                            &self.table_custom.headers,
+                                            new_footer,
+                                            Some(*index),
+                                        );
+                                    }
+                                } //match
+                            } // unitary action
+                        } //key code
+                    } //keyCodes
+                } //ActionInputs
             } //event readable
         } //loop
     }

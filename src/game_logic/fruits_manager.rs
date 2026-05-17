@@ -144,6 +144,11 @@ impl<'a, 'b> FruitsManager<'a, 'b> {
         self.fruits.clear();
         self.init(len);
     }
+    /// Returns all current fruits.
+    #[must_use]
+    pub fn get_fruits(&self) -> &Vec<Fruit<'a>> {
+        &self.fruits
+    }
     fn init(&mut self, nb: u16) {
         for _ in 0..nb {
             self.fruits
@@ -181,7 +186,7 @@ mod tests {
     use std::sync::Arc;
 
     /// Mock definitions
-    /// Not really need it there,but for example, on how to share ressources for test
+    /// Not really need it there,but for example, on how to share resources for test
     fn mock_map() -> Arc<RwLock<Map<'static>>> {
         Arc::new(RwLock::new(Map::new(2, Rect::new(0, 0, 160, 12))))
     }

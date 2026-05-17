@@ -7,7 +7,7 @@ use ratatui::DefaultTerminal;
 pub fn setup_and_run_fruits_table_parameters(terminal: &mut DefaultTerminal) {
     //a faire: extend ActionInput to have a callback for each action (like apply, move, change value)
     // Callback has a dyn &mut ApplyParameter and a &mut GenericMenu
-    // Goal is to be allowed to reload the menu table with a preset and to move freely between between menu
+    // Goal is to be allowed to reload the menu table with a preset and to move freely between menus.
     GenericMenu::new(
         load_fruits_info_in_table(),
         &fruits_get_headers(),

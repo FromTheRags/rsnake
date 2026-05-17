@@ -2,8 +2,8 @@
 //! This module contains the core components of the game logic, it includes the following submodules:
 //!
 //! - [`graphic_block`]: Handles the graphical rendering of game logic blocks in the terminal.
-//! - [`sprites`]: Provides the game sprites, as snake, map and so on. .
-//! - [`menus`]: Provides utility functions to assist with common texts and graphical tasks
+//! - [`sprites`]: Provides the game sprites, as snake, map, and so on
+//! - [`menus`]: Provides utility functions to help with common texts and graphical tasks
 
 pub mod graphic_block;
 pub mod sprites;

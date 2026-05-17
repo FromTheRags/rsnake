@@ -40,6 +40,7 @@ pub mod controls;
 pub mod game_logic;
 pub mod graphics;
 
+use crate::game_logic::logger::log_configuration::init_logger;
 use crate::game_logic::playing_thread_manager::Game;
 use clap::Parser;
 use game_logic::game_options::GameOptions;
@@ -56,10 +57,14 @@ pub fn start_snake() {
             panic!("Fail to load Snake configuration file for preset {preset}")
         });
     }
+    // Initialize logger to log level (can be the off level)
+    let _guard = init_logger(args.log_level, "snake.log");
+    tracing::info!("Snake game started with log level: {:?}", args.log_level);
+
     // If everything is OK, inits terminal for rendering
     let terminal = ratatui::init();
 
-    // init our own Game engine an display greeting screen
+    // init our own Game engine and a display greeting screen
     Game::menu(args, terminal);
 
     //in all cases, restore

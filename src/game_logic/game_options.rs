@@ -1,4 +1,5 @@
 use crate::controls::speed::Speed;
+use crate::game_logic::logger::log_configuration::LogLevel;
 use crate::graphics::graphic_block::Position;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     ActionParameter, CellValue, RowData,
@@ -31,6 +32,7 @@ const PARAMS_HEADER: &str = r#"
 # head_symbol:      character for the snake's head
 # snake_length:     initial length of the snake
 # speed:            speed of the snake (Slow, Normal, Fast, Crazy)
+# log_level:        logging level (off, error, warn, info, debug, trace)
 "#;
 
 ///To be able to iterate over range in a meta-way, see in table parameter very useful
@@ -115,7 +117,7 @@ pub struct GameOptions {
     /// Snake symbol (emoji or character)
     /// Defines short value because doublon, as short and long,
     /// are by default based on the name of the variable
-    /// Default is Christmas tree
+    /// Default is a Christmas tree
     #[arg(
         short = 'z',
         long,
@@ -187,6 +189,16 @@ pub struct GameOptions {
     )]
     #[serde(alias = "nb_of_fruit", alias = "NB_OF_FRUITS")]
     pub nb_of_fruits: u16,
+
+    /// Logging level
+    #[arg(
+        long,
+        value_enum,
+        default_value_t = LogLevel::Off,
+        help = "Sets the logging level (off, error, warn, info, debug, trace).",
+        ignore_case = true
+    )]
+    pub log_level: LogLevel,
     /// Modern way to do CLI, two dedicated flag to set/unset the value, beginning with --no- (for false)
     /// UX better than --feature false / --feature true, better than default (no flag = false).
     /// If you want the possibility to set both values,

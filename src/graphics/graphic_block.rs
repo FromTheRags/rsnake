@@ -9,6 +9,7 @@ use ratatui::layout::Rect;
 use ratatui::prelude::{Span, Style};
 use ratatui::widgets::{Widget, WidgetRef};
 
+
 /// A struct representing a graphical block that can be displayed in the game logic.
 /// It holds the position and visual representation (image) of the block.
 ///
@@ -46,8 +47,8 @@ impl<'a> GraphicBlock<'a> {
     /// A new `GraphicBlock` instance with the given position, image, and style.
     ///
     /// # Note
-    /// If you want less lifetime propagation, this code can be refactorised to take to use a static string for the image using `'static` lifetime.
-    /// But for a more general use, the lifetime parameter is better, allowing dynamic text (e.g., changing each time)
+    /// If you want less lifetime propagation, this code can be enhanced to take to use a static string for the image using `'static` lifetime.
+    /// But for a more general use, the lifetime parameter is better, allowing dynamic text (e.g., changing each time).
     /// If you want no lifetime and dynamic text, add an own `String`, to `GraphicBlock` and generate for each rendering a new `Span`,
     /// but this might affect performance.
     #[must_use]

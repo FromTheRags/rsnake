@@ -10,7 +10,7 @@ use rsnaker::start_snake;
 // find . -name '*.rs' -not -path "./target/*" -print0 | xargs -0 cat | grep -v '^\s*$' | wc -l
 // To get all in lines in .rs:
 // find . -name '*.rs' -print0 | xargs -0 cat | wc -l
-// for more precise analyse: cargo install tokei && tokei
+// for more precise analyzing: cargo install tokei && tokei
 // To have an overview of ratatui capabilities:
 // https://ratatui.rs/concepts/widgets/
 // https://github.com/ratatui/awesome-ratatui

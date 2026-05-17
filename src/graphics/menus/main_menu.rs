@@ -12,7 +12,7 @@ use std::sync::{Mutex, OnceLock};
 use unicode_segmentation::UnicodeSegmentation;
 
 //A bit overkill, but for the example of keeping data state outside of struct,
-// initialized at first call
+// initialized at the first call
 // and keeping track of the edge snake emoji position around call
 static EDGE_SNAKE: OnceLock<Mutex<EdgeSnake>> = OnceLock::new();
 
@@ -33,7 +33,7 @@ pub fn display_main_menu(
             //set a border all around the terminal
             frame.render_widget(Block::bordered().border_type(BorderType::Double), area);
 
-            // Render the edge snake emojis
+            // Render the edge snake emoji
             // Emojis often take 2 cells, we use width 2 to avoid clipping in some terminals
             let mut edge_snake = EDGE_SNAKE
                 .get_or_init(|| Mutex::new(EdgeSnake::new()))

@@ -18,7 +18,7 @@ pub fn frame_vertically_centered_rect(area: Rect, lines: usize) -> Rect {
             Constraint::Length(u16::try_from(lines).unwrap_or(u16::MAX)), // content
             Constraint::Fill(1),                                          // bottom space
         ])
-        // take second rect to render content
+        // take the second rect to render content
         .split(area)[1]
     // if we want to do manual center horizontally also
     /*Layout::default()
@@ -63,7 +63,7 @@ pub fn constraint_length_from_widths(column_widths: &[u16]) -> Vec<Constraint> {
     //for each element, add a constraint
     //  to have some fun with a destructuring pattern and while let
     while let Some(&size) = iter.next() {
-        // if there is still more elements after
+        // if there are still more elements after
         if iter.peek().is_some() {
             constraints.push(Constraint::Length(size));
         } else {

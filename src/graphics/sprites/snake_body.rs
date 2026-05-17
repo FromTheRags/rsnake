@@ -16,7 +16,7 @@ use ratatui::widgets::WidgetRef;
 /// - `CASE_SIZE`: The size of each segment of the snake's body in pixels.
 /// - `position_ini`: The initial position of the snake's head.
 /// - `size_ini`: The initial size of the snake (the number of body segments).
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SnakeBody<'a> {
     pub(crate) body: Vec<GraphicBlock<'a>>,
     case_size: u16,

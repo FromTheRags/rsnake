@@ -9,6 +9,7 @@ use ratatui::{DefaultTerminal, Frame};
 use std::sync::{Arc, RwLock};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use tracing::{trace, trace_span};
 
 ///Position to render elements
 ///will be clamped to the frame area border anyway, 9999 to go to the last line allowing easy resizing
@@ -27,10 +28,10 @@ pub fn playing_render_loop<'a: 'b, 'b>(
     speed_effect: (u16, &str),
     terminal: &mut DefaultTerminal,
 ) {
-    //better to pre-format a string than doing it each time
+    //betters to pre-format a string than doing it each time
     let speed_text = format!("Speed: x{}{}", speed_effect.0, speed_effect.1);
 
-    //configure display variable with default value
+    //configure the display variable with the default value
     let mut rendering_break = false;
     let mut need_carte_resize = false;
     let mut frame_count = 0f64;
@@ -38,9 +39,10 @@ pub fn playing_render_loop<'a: 'b, 'b>(
     let mut start_frame_time: Instant;
     let target_frame_time = Duration::from_secs_f64(1.0 / 60.0); // Target 60 FPS
 
-    //As quick as efficient as possible
+    //As quickly as efficiently as possible
     //Avoid sub functions to limit arc clone, otherwise create a display structure
     'render_loop: loop {
+        let _span = trace_span!("render_iteration", frame = frame_count).entered();
         // for FPS stats
         start_frame_time = Instant::now();
         frame_count += 1.0;
@@ -123,7 +125,7 @@ pub fn playing_render_loop<'a: 'b, 'b>(
             .expect("bad rendering, check sprites position");
         if rendering_break {
             //let time for the user to see the farewell/menu screen
-            sleep(Duration::from_millis(1000));
+            sleep(Duration::from_secs(1));
             //nice labeled loop :)
             break 'render_loop;
         }
@@ -134,6 +136,7 @@ pub fn playing_render_loop<'a: 'b, 'b>(
         if caps_fps && frame_time < target_frame_time {
             sleep(target_frame_time.saturating_sub(frame_time));
         }
+        trace!(?frame_time, "Frame rendered");
     }
 }
 /// Return whether stop the rendering

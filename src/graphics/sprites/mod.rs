@@ -1,4 +1,4 @@
-//! This module contains the core components of the game logic, it includes the following sub-modules:
+//! This module contains the core components of the game logic, it includes the following submodules:
 //!
 //! - [`fruit`]: Represents the fruit element, including its position, score, and image.
 //! - [`map`]: Manages the game logic map, layout, and boundaries.

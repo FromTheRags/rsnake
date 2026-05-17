@@ -30,12 +30,11 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 ## TODO
 
-- [ ] Add timers to fruits ⏲️
-- [ ] Add some performance logs with tracing,
+- [ ] Add timers to fruits for a custom snake mode ⏲️
+- [x] Add some performance logs with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
 - [x] Enhance all table parameters based on the generic one
-- [ ] Channel for keyboard input
-- [ ] Add GIF management
+- [x] Add main screen animation
 
 ## 💖 Support
 

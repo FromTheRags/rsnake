@@ -96,9 +96,9 @@ fn load_parameter_cli_in_table(options: &mut GameOptions) -> Vec<RowData> {
             all_value_for_this_arg
                 .extend(pv_bool_enum.into_iter().map(|v| v.get_name().to_string()));
         }
-        // Set default value, from current value (default auto so if not set in CLI using default,
-        // and serde default for missing serialize value for not-to-be-serialized value,
-        // for others...your fault to no provides them :p)
+        // Set the default value from the current value (default auto so if not set in CLI using default,
+        // and 'serde' default for missing serialize value for not-to-be-serialized value,
+        // for others...your fault to no provide them :p)
         let mut index = 0;
         //TOML crate prefers _ vs. -
         if let Some(default_value) = options

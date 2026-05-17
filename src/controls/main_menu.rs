@@ -1,5 +1,6 @@
 use crate::controls::playing_input::{QUIT_KEYS, START_KEYS};
 use crate::game_logic::game_options::GameOptions;
+use crate::game_logic::logger::log_configuration::update_log_level;
 use crate::graphics::menus::edge_snake::SPEED_MOVING_SNAKE_SLEEP_TIME_MS;
 use crate::graphics::menus::main_menu::SwitchMenu::{
     Doc, Fruits, Highs, Main, Parameters, Run, Speed,
@@ -14,6 +15,7 @@ use crossterm::event;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::DefaultTerminal;
 use std::time::Duration;
+use tracing::{debug, error, info};
 
 const SWITCH_MENUS_OPTION: [SwitchMenu; 6] = [Highs, Fruits, Speed, Run, Parameters, Doc];
 const PARAMETERS_KEYS: [KeyCode; 2] = [KeyCode::Char('e'), KeyCode::Char('E')];
@@ -61,6 +63,7 @@ fn enter_menu_screen(
             Main
         }
         MainMenuInput::QuitGame => {
+            error!("You choose to quit the game 😶‍🌫️ ");
             return MenuFlow::QuitGame;
         }
         MainMenuInput::Start => {
@@ -71,17 +74,33 @@ fn enter_menu_screen(
 
     match to_display {
         Parameters => {
+            info!("You choose to edit game parameter, good luck engineer ! ⚙️");
             run_submenu_and_reset(terminal, selected, |term| {
                 setup_and_run_cli_table_parameters(term, options);
             });
+            //turn on log as soon as the user validates them, in case we have logs in a menu also
+            update_log_level(options.log_level);
+            debug!(options = ?options, "Game options after editing");
         }
-        Fruits => run_submenu_and_reset(terminal, selected, setup_and_run_fruits_table_parameters),
-        Highs => run_submenu_and_reset(terminal, selected, setup_and_run_highs_table_parameters),
-        Speed => run_submenu_and_reset(terminal, selected, setup_and_run_speed_table_parameters),
+        Fruits => {
+            info!("You choose to see the fruit parameter, good luck they are tasty ! 🍌");
+            run_submenu_and_reset(terminal, selected, setup_and_run_fruits_table_parameters);
+        }
+        Highs => {
+            info!("You choose to see the wall of fame, good luck beating them ! 💯");
+            run_submenu_and_reset(terminal, selected, setup_and_run_highs_table_parameters);
+        }
+        Speed => {
+            info!("You choose to see the speeding information, good luck flash guy ! 🐢");
+            run_submenu_and_reset(terminal, selected, setup_and_run_speed_table_parameters);
+        }
         Run => {
             return MenuFlow::StartGame;
         }
-        Doc => run_submenu_and_reset(terminal, selected, setup_and_run_doc_table_parameters),
+        Doc => {
+            info!("You choose to see the doc information, good luck with books ! 📖");
+            run_submenu_and_reset(terminal, selected, setup_and_run_doc_table_parameters);
+        }
         Main => {
             display_main_menu(terminal, &SWITCH_MENUS_OPTION[*selected]);
         }
@@ -98,7 +117,7 @@ pub fn controls_main_switch_menu(
     loop {
         display_main_menu(terminal, &SWITCH_MENUS_OPTION[selected]);
 
-        //If there is an user input the screen could change, otherwise keep the same screen and go for the snake
+        //If there is a user input, the screen could change, otherwise keep the same screen and go for the snake
         if event::poll(Duration::from_millis(SPEED_MOVING_SNAKE_SLEEP_TIME_MS / 2))
             .expect("Error polling event")
         {

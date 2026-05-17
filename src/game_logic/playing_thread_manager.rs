@@ -14,6 +14,7 @@ use ratatui::DefaultTerminal;
 use std::cmp::max;
 use std::sync::{Arc, RwLock};
 use std::thread;
+use tracing::{debug, info, trace};
 
 /// our game engine
 /// NB: 'c must outlive 'b as, 'c (fruits manager) uses in intern the map with lock on it.
@@ -70,12 +71,14 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
     /// This function will panic if the internal `state` lock is poisoned
     /// and cannot be read.
     pub fn menu(mut options: GameOptions, mut terminal: DefaultTerminal) {
+        info!("Welcome dear player ! Make your choice on Main menu !");
         //one loop means one game, hard reset of the game from the menu
         // (as parameters can change in the parameter menu)
         loop {
             //Display the menu and get the user choice: play or not
             // (as well as others menu options of course)
             if controls_main_switch_menu(&mut terminal, &mut options) {
+                info!("Let's play! 🐍 (Run has been entered in the menu, starting the game...)");
                 // if the player wants to play, we need to initiate some game values
                 //  to get the correct case size for display
                 let case_size = u16::try_from(max(
@@ -92,6 +95,9 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
                     GameOptions::initial_position(),
                     case_size,
                 );
+                info!(Snake_lenght = ?options.snake_length, Snake_head = ?options.head_symbol, Snake_body = ?options.body_symbol, "Snake info for starting");
+                trace!(?serpent);
+                debug!(?options);
                 let mut game = Game::new(&options, serpent, carte, &mut terminal);
                 game.start();
                 if game
@@ -107,9 +113,11 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
                 break;
             }
         }
+        info!("Good bye, come back soon, snaker is waiting for you 🐍");
     }
     /// Start the main Game threads: input, rendering, logic
     pub fn start(&mut self) {
+        debug!("Starting game threads");
         // Be careful: not all threads on the same structure and do not keep them too much
         // => performance issue otherwise
         // Prepare thread use of variable
@@ -134,20 +142,28 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
         //In a scope to have auto cleaning by auto join at the end of the main thread
         thread::scope(|s| {
             // Game logic thread
-            s.spawn(move || {
-                playing_logic_loop(
-                    &logic_dir,
-                    &logic_snake,
-                    &logic_gs,
-                    &carte,
-                    &fruits_manager,
-                    (current_game_speed, snake_symbols, classic),
-                );
-            });
+            thread::Builder::new()
+                //For better log name the thread, otherwise just s.spawn()
+                .name("t_game_logic".to_string())
+                .spawn_scoped(s, move || {
+                    playing_logic_loop(
+                        &logic_dir,
+                        &logic_snake,
+                        &logic_gs,
+                        &carte,
+                        &fruits_manager,
+                        (current_game_speed, snake_symbols, classic),
+                    );
+                })
+                .expect("Unable to create the thread");
             // input logic thread
-            s.spawn(move || {
-                playing_input_loop(&input_dir, &input_gs);
-            });
+            thread::Builder::new()
+                //For better log name the thread, otherwise just s.spawn()
+                .name("t_input".to_string())
+                .spawn_scoped(s, move || {
+                    playing_input_loop(&input_dir, &input_gs);
+                })
+                .expect("Unable to create the thread");
 
             // Graphical thread (last one, reusing the main thread)
             playing_render_loop(

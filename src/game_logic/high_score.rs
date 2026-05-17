@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sled::Db;
 use std::path::Path;
+use tracing::{debug, info};
 
 const MAX_SCORE_ENTRIES: usize = 10;
 const DB_FILE: &str = "high_scores.db";
@@ -63,16 +64,19 @@ impl HighScoreManager {
         let db = sled::open(path)?;
         Ok(Self { db })
     }
-    /// Save score in the DB and then shrink the DB to `MAX_SCORE_ENTRIES`
-    /// if score is not in the best `MAX_SCORE_ENTRIES`, it will not be inserted
+    /// Save the score in the DB and then shrink the DB to `MAX_SCORE_ENTRIES`
+    /// if the score is not in the best `MAX_SCORE_ENTRIES`, it will not be inserted
     /// # Errors
     ///
     /// If DB reads / writes issues
-    pub fn save_score(&self, score: &HighScore) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save_score(
+        &self,
+        score: &HighScore,
+    ) -> Result<Option<usize>, Box<dyn std::error::Error>> {
         let encoded = toml::to_string(&score)?;
-
+        let rank = self.get_rank(score.score)?;
         //If the score to save is among the top ranks, we save
-        if self.get_rank(score.score)?.is_some() {
+        if rank.is_some() {
             // 1. Calculate the score index key prefix (for sorting, so Big Endian)
             let score_key = (u32::MAX - score.score).to_be_bytes();
 
@@ -93,7 +97,7 @@ impl HighScoreManager {
             //Now Shrink DB
             self.shrink_db()?;
         }
-        Ok(())
+        Ok(rank)
     }
     /// Shrink the DB to `MAX_SCORE_ENTRIES` size
     ///
@@ -103,7 +107,7 @@ impl HighScoreManager {
     pub fn shrink_db(&self) -> Result<(), Box<dyn std::error::Error>> {
         let mut iter = self.db.iter();
 
-        // The iterator returns Result<(IVec, IVec)>, so we need to chain unwraps/error checks
+        // The iterator returns Result <(IVec, IVec)>, so we need to chain unwrap/error checks
         // to get the key of the element to start the deletion range at.
         let key_to_start_deleting_from = iter
             .nth(MAX_SCORE_ENTRIES)
@@ -165,6 +169,22 @@ impl HighScoreManager {
         player_score_value: u32,
     ) -> Result<Option<usize>, Box<dyn std::error::Error>> {
         let mut rank = 1;
+        let logic = |rank: &usize| {
+            //Check we save only up to MAX_SCORE_ENTRIES score
+            if *rank <= MAX_SCORE_ENTRIES {
+                info!(
+                    Ranked = rank,
+                    PlayerScore = player_score_value,
+                    "Player score is in the top 10 scores ! "
+                );
+                return Ok(Some(*rank));
+            }
+            info!(
+                PlayerScore = player_score_value,
+                "Player score is not in the top 10 scores ! "
+            );
+            Ok(None)
+        };
         // We iterate on our sled DB, which is lexicography sorted, so we iterated by top score
         // to bottom score :)
         for item in self.db.iter() {
@@ -172,22 +192,15 @@ impl HighScoreManager {
             // Key 4 first bytes is the score saved as (u32::MAX - score)
             let current_key_score_bytes: [u8; 4] = key[0..4].try_into()?;
             let current_key_score = u32::MAX - u32::from_be_bytes(current_key_score_bytes);
-
+            debug!(current_key_score, "Current key score with rank:{}", rank);
+            // We found the ranking! (as we compare from top score to bottom)
             if player_score_value >= current_key_score {
-                // We found the ranking!
-                if rank <= MAX_SCORE_ENTRIES {
-                    return Ok(Some(rank));
-                }
-                return Ok(None);
+                return logic(&rank);
             }
             rank += 1;
         }
-
-        if rank <= MAX_SCORE_ENTRIES {
-            Ok(Some(rank))
-        } else {
-            Ok(None)
-        }
+        //In case we do not have all entry fulfilled, any score will be saved, even if superior to none
+        logic(&rank)
     }
 }
 
