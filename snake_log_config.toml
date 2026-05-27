@@ -1,0 +1,29 @@
+# Snake Game Logging Configuration
+# ---------------------------------
+# This file is dedicated to the logging subsystem and is read at startup
+# directly inside `init_logger`. Only deserialization is supported — the
+# game never writes back to this file.
+#
+# Fields (all optional, missing keys fall back to defaults):
+#   level             logging level: off, error, warn, info, debug, trace
+#   file_name         path of the produced log file (current directory)
+#   time_format       `time` crate format description, e.g.:
+#                     "[hour]:[minute]:[second].[subsecond digits:6]"
+#   with_ansi         emit ANSI color codes in the log file
+#   with_target       include the module path / target
+#   with_thread_names include the thread name
+#   with_thread_ids   include the thread id
+#   with_line_number  include the source line number
+#   with_file         include the source file name
+#   with_level        include the log level
+
+level = "off"
+file_name = "snake.log"
+time_format = "[hour]:[minute]:[second].[subsecond digits:6]"
+with_ansi = false
+with_target = false
+with_thread_names = true
+with_thread_ids = false
+with_line_number = true
+with_file = true
+with_level = true

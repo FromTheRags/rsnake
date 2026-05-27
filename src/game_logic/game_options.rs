@@ -25,7 +25,7 @@ const PARAMS_HEADER: &str = r#"
 # Snake Game Configuration
 # ---------------------------
 # classic_mode:     true for classic rules (walls kill, no wrapping)
-# uncaps_fps:       disables frame limiting (true = no limit) 
+# caps_fps:         Enable frame limiting (default to true, false = no limit)
 # life:             starting lives
 # nb_of_fruits:     number of fruits available in the game at once
 # body_symbol:      character for the snake's body  

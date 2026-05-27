@@ -36,16 +36,13 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 - [x] Enhance all table parameters based on the generic one
 - [x] Add main screen animation
 
-## 💖 Support
-
-- 🥤If you like this game and want to contribute to more amazing features, consider giving me a coffee to support
-  development:
-  [![Support me on Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Me-ff5f5f?logo=kofi&logoColor=white)](https://ko-fi.com/retrosnake)
-
 ## Run Game options
 
 - To see run options, use: `rsnake --help`
 - E.g., `rsnake -z 🐼 -b 🍥` or `cargo run -- -z 🐼 -b 🍥` (if from source)
+
+### TOML Presets
+
 - To save a set of parameters:
     - Use the in-game menu "edit", load a slot
       (with a number between 1 and 7), make your modifiation with arrows keys then save with 'x'
@@ -105,6 +102,30 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
   `cargo install --path .`  
   And then run the game with: `rsnake`
 - See [Run option below for more details](#Run-Game-options).
+
+### Logging Configuration
+
+The logging subsystem is configured from a **dedicated** TOML file (`snake_log_config.toml`),
+separate from the game options file. It is read **only once at startup**, and is **deserialization-only** (the game
+never writes back to it).
+If the file is missing or invalid, sensible defaults are used.
+
+```toml
+# snake_log_config.toml
+level = "off"                                              # off, error, warn, info, debug, trace
+file_name = "snake.log"                                    # output log file (current directory)
+time_format = "[hour]:[minute]:[second].[subsecond digits:6]"  # `time` crate format description
+with_ansi = false                                          # ANSI colors in the log file
+with_target = false                                        # include the module path (target)
+with_thread_names = true                                   # include thread names
+with_thread_ids = false                                    # include thread ids
+with_line_number = true                                    # include source line numbers
+with_file = true                                           # include source file names
+with_level = true                                          # include the log level
+```
+
+The CLI flag `--log-level` (if explicitly set, i.e. not `off`) overrides the level coming from
+the TOML file via the hot-reload handle, as well as log option overrides if set in game preset file/menu.
 
 ## Architecture
 

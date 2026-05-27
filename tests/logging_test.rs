@@ -8,15 +8,32 @@ use std::time::Duration;
 fn test_logger_writes_to_file_and_updates_level() {
     let log_file_name = "test_output.log";
     let log_path = Path::new(log_file_name);
+    let config_path = "test_log_config_runtime.toml";
 
     // Ensure the file doesn't exist before we start
     if log_path.exists() {
         fs::remove_file(log_path).unwrap();
     }
 
+    // Write a dedicated logging configuration TOML file (deserialized inside init_logger).
+    let toml_content = format!(
+        r#"level = "info"
+file_name = "{log_file_name}"
+time_format = "[hour]:[minute]:[second]"
+with_ansi = false
+with_target = false
+with_thread_names = true
+with_thread_ids = false
+with_line_number = true
+with_file = true
+with_level = true
+"#
+    );
+    fs::write(config_path, toml_content).unwrap();
+
     {
-        // 1. Initialize logger at Info level
-        let _guard = init_logger(LogLevel::Info, log_file_name);
+        // 1. Initialize logger from the TOML file (info level)
+        let _guard = init_logger(Some(config_path));
 
         // 2. Log an info message (should be written)
         tracing::info!(target: "rsnaker", "This is an info message");
@@ -61,4 +78,5 @@ fn test_logger_writes_to_file_and_updates_level() {
 
     // Clean up
     fs::remove_file(log_path).unwrap();
+    let _ = fs::remove_file(config_path);
 }

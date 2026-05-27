@@ -16,8 +16,9 @@
 //! ```rust
 //! use rsnaker::game_logic::logger::log_configuration::{init_logger, update_log_level, LogLevel};
 //! use tracing::{info, span, Level};
-//!     // 1. Initialize the global logger (keep the guard alive!)
-//!     let _guard = init_logger(LogLevel::Info, "test_log.log");
+//!     // 1. Initialize the global logger from a TOML configuration file
+//!     //    (keep the guard alive!). If the file does not exist, defaults are used.
+//!     let _guard = init_logger(Some("snake_log_config.toml"));
 //!
 //!     info!("This log is visible at Info level.");
 //!

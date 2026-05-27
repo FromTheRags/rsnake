@@ -28,6 +28,8 @@ jobs:
       - name: Run Clippy (warnings allowed, otherwise add "-- -D warnings")
         run: cargo clippy --all-targets --all-features
       #1 thread otherwise delete files needs before tests end (safer for CI/CD)
+      # NB: if tests are too long, consider cargo nextest (up to x3) but currently does
+      #not manage doc tests: https://nexte.st/ 
       - name: Tests
         run: cargo test --verbose -- --test-threads=1
 

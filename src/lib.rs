@@ -40,10 +40,13 @@ pub mod controls;
 pub mod game_logic;
 pub mod graphics;
 
-use crate::game_logic::logger::log_configuration::init_logger;
+use crate::game_logic::logger::log_configuration::{
+    init_logger, update_log_level, LogLevel, DEFAULT_LOG_CONFIG_PATH,
+};
 use crate::game_logic::playing_thread_manager::Game;
 use clap::Parser;
 use game_logic::game_options::GameOptions;
+use tracing::{debug, info};
 
 /// # Panics
 /// If bad characters (invalid size) are provided for snake body or head
@@ -57,10 +60,16 @@ pub fn start_snake() {
             panic!("Fail to load Snake configuration file for preset {preset}")
         });
     }
-    // Initialize logger to log level (can be the off level)
-    let _guard = init_logger(args.log_level, "snake.log");
-    tracing::info!("Snake game started with log level: {:?}", args.log_level);
 
+    // Initialize logger: configuration (level, file name, time format and all
+    // formatting booleans) is read from a dedicated TOML file inside `init_logger`.
+    let (_guard, log_config) = init_logger(Some(DEFAULT_LOG_CONFIG_PATH));
+    // CLI log level (if explicitly set, i.e., not Off) overrides the file level.
+    if args.log_level != LogLevel::Off {
+        update_log_level(args.log_level);
+    }
+    info!("Snake game arguments parsed and configuration is successful!");
+    debug!(log_config = ?log_config);
     // If everything is OK, inits terminal for rendering
     let terminal = ratatui::init();
 
