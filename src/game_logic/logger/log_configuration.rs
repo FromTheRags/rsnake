@@ -138,17 +138,15 @@ pub fn init_logger<P: AsRef<Path>>(
     //LocalTime instead of UTC, to have the local time
     //The generic 2 is the version of this function from time crate (a bit strange but why not)
     let parsed_format: OwnedFormatItem = format_description::parse_owned::<2>(&config.time_format)
-        .map_err(|_| {
+        .unwrap_or_else(|_| {
             //std error because logger is not yet initialized at that time
             eprintln!(
                 "Failed to parse time format string: {}, using default",
                 config.time_format
             );
-        })
-        .unwrap_or(
             format_description::parse_owned::<2>(&LogConfig::default().time_format)
-                .expect("Default time format is valid"),
-        );
+                .expect("Default time format is valid")
+        });
     let layer = fmt::layer()
         .with_writer(non_blocking)
         .with_ansi(config.with_ansi)

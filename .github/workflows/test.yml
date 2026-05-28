@@ -29,7 +29,8 @@ jobs:
         run: cargo clippy --all-targets --all-features
       #1 thread otherwise delete files needs before tests end (safer for CI/CD)
       # NB: if tests are too long, consider cargo nextest (up to x3) but currently does
-      #not manage doc tests: https://nexte.st/ 
+      #not manage doc tests: https://nexte.st/ (they have CI actions for install)
+      #Locally: cargo install cargo-binstall --locked && cargo binstall cargo-nextest --secure && cargo nextest run
       - name: Tests
         run: cargo test --verbose -- --test-threads=1
 
