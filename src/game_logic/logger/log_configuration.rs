@@ -231,13 +231,13 @@ with_line_number = false
 with_file = false
 with_level = false
 "#;
-        std::fs::write(path, content).unwrap();
+        fs::write(path, content).unwrap();
         let cfg = LogConfig::load_from_toml(path);
         assert_eq!(cfg.level, LogLevel::Debug);
         assert_eq!(cfg.file_name, "test.log");
         assert!(cfg.with_ansi);
         assert!(!cfg.with_line_number);
-        let _ = std::fs::remove_file(path);
+        let _ = fs::remove_file(path);
     }
 
     #[test]

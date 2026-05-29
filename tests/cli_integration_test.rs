@@ -1,4 +1,4 @@
-use assert_cmd::{cargo_bin, Command};
+use assert_cmd::{Command, cargo_bin};
 use predicates::prelude::PredicateBooleanExt;
 use predicates::str::contains;
 use std::time::Instant;

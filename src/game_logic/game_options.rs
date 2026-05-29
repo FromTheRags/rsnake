@@ -24,7 +24,9 @@ pub const ONLY_FOR_CLI_PARAMETERS: [&str; 2] = ["load", "no-"];
 const PARAMS_HEADER: &str = r#"
 # Snake Game Configuration
 # ---------------------------
-# classic_mode:     true for classic rules (walls kill, no wrapping)
+# negative_size_fruits: allow fruits that can shrink the snake
+# fruit_timer:      enable fruit lifetime countdown and auto-replacement
+# fruit_duration_seconds: base lifetime of a fruit before multipliers are applied
 # caps_fps:         Enable frame limiting (default to true, false = no limit)
 # life:             starting lives
 # nb_of_fruits:     number of fruits available in the game at once
@@ -72,6 +74,7 @@ define_args_withs! {
 SNAKE_LENGTH: 2 => 999,
 LIFE: 1 => 99,
 NB_OF_FRUITS : 1 => 999,
+FRUIT_DURATION_SECONDS: 1 => 60,
 PRESETS: 1 => 7,
 }
 const MAX_EMOJI_BY_LINE_COUNT: u16 = 19;
@@ -83,7 +86,7 @@ pub const DISPLAYABLE_EMOJI: [&str; 38] = [
     "🦀", "🐳", "🎄", "❄️", "👽", "@",
 ];
 /// Structure holding all the configuration parameters for the game
-#[derive(Parser, Serialize, Deserialize, Debug, Clone)]
+#[derive(Parser, Serialize, Deserialize, Debug, Clone, Default)]
 #[serde(default)]
 #[command(
     author,
@@ -98,7 +101,6 @@ pub const DISPLAYABLE_EMOJI: [&str; 38] = [
     env!("CARGO_PKG_DESCRIPTION"), " where you can configure the velocity, \
     snake appearance, and more using command-line arguments.\nExample for asian vibes: rsnake -z 🐼 -b 🍥")
 )]
-#[derive(Default)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct GameOptions {
     /// Speed of the snake (Slow, Normal, Fast, Crazy)
@@ -190,6 +192,48 @@ pub struct GameOptions {
     #[serde(alias = "nb_of_fruit", alias = "NB_OF_FRUITS")]
     pub nb_of_fruits: u16,
 
+    /// Enables the fruit timer and automatic replacement when a fruit expires.
+    #[arg(
+        long = "fruit-timer",
+        overrides_with = "fruit_timer",
+        help = "Enable the fruit lifetime countdown and automatic replacement [default]"
+    )]
+    #[serde(skip, default = "default_false")]
+    no_fruit_timer: bool,
+    #[arg(
+        long = "no-fruit-timer",
+        default_value_t = true,
+        action = ArgAction::SetFalse,
+    )]
+    pub fruit_timer: bool,
+
+    /// Base fruit lifetime in seconds before per-fruit multipliers are applied.
+    #[arg(
+        long,
+        default_value_t = 20,
+        value_parser = get_parameter_range_parser(FRUIT_DURATION_SECONDS),
+        help = format!(
+            "Defines the base lifetime used to derive fruit durations {}",
+            pretty(get_parameter_range(FRUIT_DURATION_SECONDS).unwrap())
+        )
+    )]
+    pub fruit_duration_seconds: u16,
+
+    /// Allow fruits with negative size effects.
+    #[arg(
+        long = "negative-size-fruits",
+        overrides_with = "negative_size_fruits",
+        help = "Allow fruits that can shrink the snake [default]"
+    )]
+    #[serde(skip, default = "default_false")]
+    no_negative_size_fruits: bool,
+    #[arg(
+        long = "no-negative-size-fruits",
+        default_value_t = true,
+        action = ArgAction::SetFalse,
+    )]
+    pub negative_size_fruits: bool,
+
     /// Logging level
     #[arg(
         long,
@@ -219,17 +263,6 @@ pub struct GameOptions {
         action = ArgAction::SetFalse,
     )]
     pub caps_fps: bool,
-    /// As default is false, order is more logical
-    #[arg(
-        long,
-        default_value_t = false,
-        overrides_with = "no_classic_mode",
-        help = "Classic mode: classic logic with only growing snake no cut-size-fruit \nNo-classic [default] with a more modern and challenging logic with cut-size-fruits "
-    )]
-    pub classic_mode: bool,
-    #[arg(long)]
-    #[serde(skip, default = "default_true")]
-    no_classic_mode: bool,
     /// Load game parameters
     #[arg(
         long,
@@ -286,6 +319,10 @@ impl GameOptions {
         clamp_to(&mut self.snake_length, get_parameter_range(SNAKE_LENGTH));
         clamp_to(&mut self.life, get_parameter_range(LIFE));
         clamp_to(&mut self.nb_of_fruits, get_parameter_range(NB_OF_FRUITS));
+        clamp_to(
+            &mut self.fruit_duration_seconds,
+            get_parameter_range(FRUIT_DURATION_SECONDS),
+        );
         if let Some(preset) = &mut self.load {
             clamp_to(preset, get_parameter_range(PRESETS));
             //self.load = Some(preset.clamp(*PRESETS.start(), *PRESETS.end()));
@@ -367,9 +404,6 @@ fn pretty(r: RangeInclusive<u16>) -> String {
     format!("[{}-{}]", r.start(), r.end()).to_string()
 }
 // Serde trick
-fn default_true() -> bool {
-    true
-}
 fn default_false() -> bool {
     false
 }

@@ -41,7 +41,7 @@ pub mod game_logic;
 pub mod graphics;
 
 use crate::game_logic::logger::log_configuration::{
-    init_logger, update_log_level, LogLevel, DEFAULT_LOG_CONFIG_PATH,
+    DEFAULT_LOG_CONFIG_PATH, LogLevel, init_logger, update_log_level,
 };
 use crate::game_logic::playing_thread_manager::Game;
 use clap::Parser;

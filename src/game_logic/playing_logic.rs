@@ -20,7 +20,7 @@ pub fn playing_logic_loop(
     gs: &Arc<RwLock<GameState>>,
     carte: &Arc<RwLock<Map>>,
     fruits_manager: &Arc<RwLock<FruitsManager>>,
-    (game_speed, snake_symbols, classic_mode): (Speed, String, bool),
+    (game_speed, snake_symbols, negative_size_fruits): (Speed, String, bool),
 ) {
     let mut gsc;
     debug!(fruits = ?fruits_manager.read().unwrap().get_fruits(), "Initial fruits on map");
@@ -45,8 +45,8 @@ pub fn playing_logic_loop(
                     let score_fruits = fruits.iter().map(Fruit::get_score).sum::<i32>();
                     let size_effect = fruits.iter().map(Fruit::get_grow_snake).sum::<i16>();
                     info!(?fruits, "Fruit characteristics");
-                    // in all cases except classic mode with negative size, we always apply size modifiers
-                    if !(classic_mode && size_effect <= 0) {
+                    // In classic-like mode, negative fruits are disabled.
+                    if negative_size_fruits || size_effect > 0 {
                         write_guard.relative_size_change(size_effect);
                     }
                     //NB:Converting an u16 to an i32 is always safe in Rust because the range of u16 (0 to 65,535)

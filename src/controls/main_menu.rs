@@ -84,7 +84,9 @@ fn enter_menu_screen(
         }
         Fruits => {
             info!("You choose to see the fruit parameter, good luck they are tasty ! 🍌");
-            run_submenu_and_reset(terminal, selected, setup_and_run_fruits_table_parameters);
+            run_submenu_and_reset(terminal, selected, |term| {
+                setup_and_run_fruits_table_parameters(term, options);
+            });
         }
         Highs => {
             info!("You choose to see the wall of fame, good luck beating them ! 💯");

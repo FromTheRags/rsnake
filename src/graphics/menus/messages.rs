@@ -3,10 +3,10 @@ use crate::graphics::menus::main_menu::Button;
 use crate::graphics::menus::utils_layout::{
     frame_vertically_centered_rect, render_full_centered_paragraph,
 };
+use ratatui::Frame;
 use ratatui::style::Color;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
 // For ASCII art use AI or a generator as:
 // http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=Pause

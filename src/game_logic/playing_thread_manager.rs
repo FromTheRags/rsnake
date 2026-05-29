@@ -29,11 +29,11 @@ pub struct Game<'a, 'b, 'c: 'b, 't: 'a + 'b + 'c> {
     /// The direction chosen by the player for the snake
     direction: Arc<RwLock<Direction>>,
     /// The game logic map where items/snake are displayed
-    /// NB: As we want a resizable map, ``RwLock``, otherwise use only Arc<Map> (immuable)
+    /// NB: As we want a resizable map, `RwLock`, otherwise use only Arc<Map> (immuable)
     carte: Arc<RwLock<Map<'b>>>,
     /// Game states and metrics (life etc.)
     state: Arc<RwLock<GameState>>,
-    /// Manage fruits (popping, eaten etc.)
+    /// Manage fruits (popping, eaten, etc.)
     fruits_manager: Arc<RwLock<FruitsManager<'c, 'b>>>,
     /// The current terminal
     terminal: &'t mut DefaultTerminal,
@@ -60,6 +60,8 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
             fruits_manager: Arc::new(RwLock::new(FruitsManager::new(
                 fruits_nb,
                 arc_carte.clone(),
+                options.fruit_timer,
+                f32::from(options.fruit_duration_seconds),
             ))),
             terminal,
         }
@@ -137,7 +139,7 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
         // or share as a normal variable by copy
         //Game speed is a constant by game, so we can clone it normally
         let current_game_speed = self.speed;
-        let classic = self.options.classic_mode;
+        let negative_size_fruits = self.options.negative_size_fruits;
         let snake_symbols = format!("{}{}", self.options.head_symbol, self.options.body_symbol);
         //In a scope to have auto cleaning by auto join at the end of the main thread
         thread::scope(|s| {
@@ -152,7 +154,7 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
                         &logic_gs,
                         &carte,
                         &fruits_manager,
-                        (current_game_speed, snake_symbols, classic),
+                        (current_game_speed, snake_symbols, negative_size_fruits),
                     );
                 })
                 .expect("Unable to create the thread");

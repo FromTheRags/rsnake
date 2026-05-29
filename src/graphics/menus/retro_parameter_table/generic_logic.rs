@@ -1,5 +1,5 @@
 use crate::graphics::menus::retro_parameter_table::generic_style::{
-    get_formated_footer, ScrollBarCustomRetroStyle, TableCustomRetroStyle, DISPLAY_CELL_OUT_SPACE,
+    DISPLAY_CELL_OUT_SPACE, ScrollBarCustomRetroStyle, TableCustomRetroStyle, get_formated_footer,
 };
 use crate::graphics::menus::utils_layout::{
     calculate_max_column_widths, calculate_sum_inner_row_heights, constraint_length_from_widths,
@@ -8,9 +8,9 @@ use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::widgets::FrameExt;
 use ratatui::{
-    layout::{Constraint, Layout}, widgets::Paragraph,
-    DefaultTerminal,
-    Frame,
+    DefaultTerminal, Frame,
+    layout::{Constraint, Layout},
+    widgets::Paragraph,
 };
 use unicode_segmentation::UnicodeSegmentation;
 

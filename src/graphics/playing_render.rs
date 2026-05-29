@@ -109,18 +109,21 @@ pub fn playing_render_loop<'a: 'b, 'b>(
                 {
                     //NB: to have lighter code, we could implement Widget on custom Type wrapper
                     // over RwLock using the NewType Pattern to overcome the Orphan Rule
-                    let fruits_manager_read = fruits_manager.read().unwrap(); // Read lock
-                    frame.render_widget(&*fruits_manager_read, frame.area());
-                }
+                    // write because swap value of counter and renew fruits if expired
+                    let mut fruits_manager_write = fruits_manager.write().unwrap(); // Read lock
+                    fruits_manager_write.update();
+                    frame.render_widget(&*fruits_manager_write, frame.area());
 
-                // And game_logic status
-                let state_guard = state.read().unwrap();
-                rendering_break = game_state_render(
-                    &state_guard.status,
-                    state_guard.score,
-                    state_guard.rank,
-                    frame,
-                );
+                    // And game_logic status
+                    let state_guard = state.read().unwrap();
+                    rendering_break = game_state_render(
+                        &state_guard.status,
+                        &mut fruits_manager_write,
+                        state_guard.score,
+                        state_guard.rank,
+                        frame,
+                    );
+                }
             })
             .expect("bad rendering, check sprites position");
         if rendering_break {
@@ -142,6 +145,7 @@ pub fn playing_render_loop<'a: 'b, 'b>(
 /// Return whether stop the rendering
 fn game_state_render(
     state: &GameStatus,
+    fruits_manager: &mut FruitsManager,
     score: u32,
     rank: Option<usize>,
     frame: &mut Frame,
@@ -149,17 +153,24 @@ fn game_state_render(
     let mut rendering_break = false;
     match state {
         GameStatus::Paused => {
+            // this little logic part must be there (graphic related), because only the draw thread is fast enough
+            // as snake speed elsewhere speeds the game logic
+            fruits_manager.set_timer_paused(true);
             menus::messages::pause_paragraph(frame);
         }
         GameStatus::GameOver(selection) => {
+            fruits_manager.set_timer_paused(true);
             menus::messages::game_over_paragraph(frame, selection, score, rank);
         }
         GameStatus::ByeBye => {
             menus::messages::byebye_paragraph(frame);
             rendering_break = true;
         }
-        GameStatus::Playing => (),
+        GameStatus::Playing => {
+            fruits_manager.set_timer_paused(false);
+        }
         GameStatus::Restarting => {
+            fruits_manager.set_timer_paused(true);
             menus::messages::restart_paragraph(frame);
         }
         GameStatus::Menu => {

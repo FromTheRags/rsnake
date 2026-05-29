@@ -1,4 +1,4 @@
-use rsnaker::game_logic::logger::log_configuration::{init_logger, update_log_level, LogLevel};
+use rsnaker::game_logic::logger::log_configuration::{LogLevel, init_logger, update_log_level};
 use std::fs;
 use std::path::Path;
 use std::thread;

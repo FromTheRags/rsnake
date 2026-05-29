@@ -1,9 +1,9 @@
 use crate::graphics::menus::retro_parameter_table::generic_logic::RowData;
 use crate::graphics::menus::retro_parameter_table::generic_style::DEFAULT_ITEM_HEIGHT;
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, Paragraph};
-use ratatui::Frame;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Creates a vertically centered rectangle within the given area with the specified number of lines.
