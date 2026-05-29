@@ -12,7 +12,7 @@
 //! use std::time::Duration;
 //!
 //! let position = Position { x: 5, y: 10 };
-//! let apple = Fruit::new(40, 2, position, "🍎", Duration::from_secs(5), true);
+//! let apple = Fruit::new(40, 2, position, "🍎", 5f32, true);
 //! assert_eq!(apple.get_score(), 40);
 //! ```
 

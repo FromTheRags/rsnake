@@ -21,7 +21,7 @@
 //!     number_of_fruits_to_manage,
 //!     map.clone(),
 //!     true,
-//!     Duration::from_secs(5),
+//!     5f32,
 //! );
 //!
 //! // Simulate eating fruits
@@ -63,7 +63,7 @@ impl<'a, 'b> FruitsManager<'a, 'b> {
     /// use rsnaker::game_logic::fruits_manager::FruitsManager;
     /// use rsnaker::graphics::sprites::map::Map;
     /// let map = Arc::new(RwLock::new(Map::new(2, Rect::new(0,0, 160,10))));
-    /// let manager = FruitsManager::new(3, map, true, Duration::from_secs(5));
+    /// let manager = FruitsManager::new(3, map, true, 5f32);
     /// ```
     #[must_use]
     pub fn new(
