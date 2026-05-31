@@ -1,7 +1,7 @@
-use crate::game_logic::game_options::{GameOptions, ONLY_FOR_CLI_PARAMETERS, get_parameter_range};
+use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    ActionInputs, CellValue, FooterData, GenericMenu, RowData, TableParameterAction,
-    get_default_action_input,
+    get_default_action_input, ActionInputs, CellValue, FooterData, GenericMenu, RowData,
+    TableParameterAction,
 };
 use clap::CommandFactory;
 use crossterm::event::KeyCode;
@@ -15,7 +15,7 @@ pub fn setup_and_run_cli_table_parameters(
     let data: Vec<RowData> = load_parameter_cli_in_table(options);
     let mut actions = get_default_action_input();
     actions.push(ActionInputs {
-        key: vec![KeyCode::Char('x'), KeyCode::Char('X')],
+        key: vec![KeyCode::Char('x'), KeyCode::Char('X'), KeyCode::End],
         action: vec![
             TableParameterAction::ApplyAndSave(options),
             TableParameterAction::Quit,
@@ -146,12 +146,12 @@ fn parameters_cli_get_headers() -> Vec<String> {
 pub fn parameters_cli_get_footer_data(current_preset: Option<u16>) -> Vec<FooterData> {
     vec![
         FooterData {
-            symbol: "Esc".into(),
+            symbol: "Esc/Tab".into(),
             text: "Quit".into(),
             value: None,
         },
         FooterData {
-            symbol: "x".into(),
+            symbol: "x/END".into(),
             text: "Quit & Save".into(),
             value: None,
         },

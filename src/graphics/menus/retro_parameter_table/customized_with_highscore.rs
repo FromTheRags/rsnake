@@ -1,6 +1,6 @@
 use crate::game_logic::high_score::HighScoreManager;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
+    get_default_action_input, CellValue, FooterData, GenericMenu, RowData,
 };
 use ratatui::DefaultTerminal;
 
@@ -66,7 +66,7 @@ fn highs_get_headers() -> Vec<String> {
 fn highs_get_footer_data() -> Vec<FooterData> {
     vec![
         FooterData {
-            symbol: "Esc".into(),
+            symbol: "Esc/Tab".into(),
             text: "Return to home".into(),
             value: None,
         },

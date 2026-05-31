@@ -6,15 +6,15 @@ use crossterm::event::{KeyCode, KeyEventKind};
 use std::sync::{Arc, RwLock};
 use tracing::{error, info, warn};
 
-pub const QUIT_KEYS: [KeyCode; 2] = [KeyCode::Char('q'), KeyCode::Char('Q')];
+pub const QUIT_KEYS: [KeyCode; 3] = [KeyCode::Char('q'), KeyCode::Char('Q'), KeyCode::Tab];
 pub const START_KEYS: [KeyCode; 2] = [KeyCode::Char('r'), KeyCode::Char('R')];
-pub const MAIN_MENU_KEYS: [KeyCode; 2] = [KeyCode::Char('m'), KeyCode::Char('M')];
+pub const MAIN_MENU_KEYS: [KeyCode; 3] = [KeyCode::Char('m'), KeyCode::Char('M'), KeyCode::Home];
 //const DIRECTIONAL_KEYS: [KeyCode; 4] = [KeyCode::Down, KeyCode::Up, KeyCode::Left, KeyCode::Right];
 pub const PAUSE_KEYS: [KeyCode; 4] = [
     KeyCode::Char('p'),
     KeyCode::Char('P'),
     KeyCode::Char(' '),
-    KeyCode::Home,
+    KeyCode::Char('-'),
 ];
 pub const RESET_KEYS: [KeyCode; 2] = [KeyCode::Char('r'), KeyCode::Char('R')];
 

@@ -45,10 +45,10 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 - To save a set of parameters:
     - Use the in-game menu "edit", load a slot
-      (with a number between 1 and 7), make your modifiation with arrows keys then save with 'x'
+      (with a number between 1 and 7), make your modification with arrows keys, then save with 'x'
     - Create and alias for the CI option
 - Then load with `--load` option or using the in-game menu "edit".  
-  NB: You can download some of the [Best Configurations](Best_configurations) and put it int he same folder as the
+  NB: You can download some of the [Best Configurations](Best_configurations) and put it in the same folder as the
   executable
 
 ## Installation from release
@@ -56,7 +56,7 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 ### ✅ Prerequisites
 
 - 💻 **Use a terminal that supports emoji**
-    - On **Windows**,the [new microsoft terminal](https://apps.microsoft.com/detail/9n0dx20hk701?hl=en-us&gl=US) shipped
+    - On **Windows**,the [new Microsoft terminal](https://apps.microsoft.com/detail/9n0dx20hk701?hl=en-us&gl=US) shipped
       with w11 (and compatible w10) supports emoji out of the box among other improvements.
     - On **Linux** / Android, you could need to install the Noto Emoji font:
       👉 [Emoji font support](#Enable-Emoji-Font-Support) for instructions.
@@ -85,12 +85,12 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
   If you don't have Rust yet:
     - On **Windows**, Install Rust using the official .exe installer https://www.rust-lang.org/tools/install (as it
       works
-      Out-Of-The-Box on windows)
+      Out-Of-The-Box on Windows)
     - On **Linux** 👉 [Installation Rust and tools for Linux](#Installation-of-Rust-and-tools-for-Linux) for instructions
     - On **Android** use a linux emulator and follow the same instruction as linux, tested with:
         - [Android using Ubuntu](https://github.com/CypherpunkArmory/UserLAnd),
         - [Termux](https://github.com/termux/termux-app)  
-          For easier use, END key works as ENTER and HOME as a pause key.
+          For easier use, END key works as ENTER, "-" as a pause key, HOME for menu, Tab to quit.
 
 ### Running
 
@@ -124,8 +124,8 @@ with_file = true                                           # include source file
 with_level = true                                          # include the log level
 ```
 
-The CLI flag `--log-level` (if explicitly set, i.e. not `off`) overrides the level coming from
-the TOML file via the hot-reload handle, as well as log option overrides if set in game preset file/menu.
+The CLI flag `--log-level` (if explicitly set, i.e., not `off`) overrides the level coming from
+the TOML file via the hot-reload handle, as well as log option overrides if set in game-preset file/menu.
 
 ## Architecture
 

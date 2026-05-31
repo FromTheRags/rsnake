@@ -1,5 +1,5 @@
 use crate::graphics::menus::retro_parameter_table::generic_style::{
-    DISPLAY_CELL_OUT_SPACE, ScrollBarCustomRetroStyle, TableCustomRetroStyle, get_formated_footer,
+    get_formated_footer, ScrollBarCustomRetroStyle, TableCustomRetroStyle, DISPLAY_CELL_OUT_SPACE,
 };
 use crate::graphics::menus::utils_layout::{
     calculate_max_column_widths, calculate_sum_inner_row_heights, constraint_length_from_widths,
@@ -8,9 +8,9 @@ use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::widgets::FrameExt;
 use ratatui::{
-    DefaultTerminal, Frame,
-    layout::{Constraint, Layout},
-    widgets::Paragraph,
+    layout::{Constraint, Layout}, widgets::Paragraph,
+    DefaultTerminal,
+    Frame,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -328,7 +328,7 @@ pub fn get_default_action_input<'a>() -> Vec<ActionInputs<'a>> {
             action: vec![TableParameterAction::PreviousValue],
         },
         ActionInputs {
-            key: vec![KeyCode::Esc],
+            key: vec![KeyCode::Esc, KeyCode::Tab],
             action: vec![TableParameterAction::Quit],
         },
     ]

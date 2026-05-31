@@ -1,6 +1,6 @@
 use crate::controls::speed::Speed;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
+    get_default_action_input, CellValue, FooterData, GenericMenu, RowData,
 };
 use clap::ValueEnum;
 use ratatui::DefaultTerminal;
@@ -52,7 +52,7 @@ fn speed_get_headers() -> Vec<String> {
 fn speed_get_footer_data() -> Vec<FooterData> {
     vec![
         FooterData {
-            symbol: "Esc".into(),
+            symbol: "Esc/Tab".into(),
             text: "Return to home".into(),
             value: None,
         },

@@ -65,7 +65,7 @@ fn fruits_get_headers() -> Vec<String> {
 fn fruits_get_footer_data() -> Vec<FooterData> {
     vec![
         FooterData {
-            symbol: "Esc".into(),
+            symbol: "Esc/Tab".into(),
             text: "Return to home".into(),
             value: None,
         },
