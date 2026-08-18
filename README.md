@@ -129,6 +129,8 @@ the TOML file via the hot-reload handle, as well as log option overrides if set 
 
 ## Architecture
 
+Full details available in [architecture.md](architecture.md).
+
 - Uses `Arc` & `RwLock` for synchronization.
 - Spawns separate threads for input handling, rendering (60 Hz), and game logic execution.
 
