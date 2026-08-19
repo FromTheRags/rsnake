@@ -1,0 +1,55 @@
+name: cargo-deny
+
+# Supply-chain audit of the dependency graph, configured in deny.toml:
+#   advisories -- RustSec vulnerabilities, unmaintained and yanked crates
+#   licenses   -- every crate must resolve to a license on the allow list
+#   bans       -- duplicate versions, wildcard deps, banned crates
+#   sources    -- crates may only come from crates.io
+#
+# Runs on a schedule as well as on push/PR: new advisories are published against
+# code that has not changed, so commit-triggered runs alone would miss them.
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    #schedule:
+    # Mondays 05:17 UTC. Off the hour to avoid the GitHub Actions cron rush.
+  #  - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+# A new push to the same ref makes an in-flight audit obsolete.
+concurrency:
+  group: cargo-deny-${{ github.ref }}
+  cancel-in-progress: true
+# If advisories fail, and we don't want to fail the entire workflow. We can enable:
+# continue-on-error: ${{ matrix.checks == 'advisories' }}
+permissions:
+  contents: read
+
+jobs:
+  cargo-deny:
+    name: cargo deny (${{ matrix.checks }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Report every category in one run instead of stopping at the first
+      # failure -- a license problem should not hide a vulnerability.
+      fail-fast: false
+      matrix:
+        checks:
+          - advisories
+          - bans licenses sources
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check ${{ matrix.checks }}
+          # Targets, all-features and the ignore list live in deny.toml so that
+          # `cargo deny check` locally behaves exactly like CI.
+          arguments: --locked

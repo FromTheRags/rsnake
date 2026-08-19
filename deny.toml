@@ -1,0 +1,105 @@
+# cargo-deny configuration -- https://embarkstudios.github.io/cargo-deny/
+#
+# Audits the whole dependency graph for:
+#   * advisories -- known vulnerabilities / unmaintained / yanked crates (RustSec)
+#   * licenses   -- every crate must resolve to a license we allow
+#   * bans       -- duplicate versions, banned crates
+#   * sources    -- crates may only come from crates.io
+#
+# Run locally with:
+#   cargo install cargo-deny --locked   (or: cargo binstall cargo-deny)
+#   cargo deny check
+# Refresh the advisory database only:
+#   cargo deny fetch
+
+[graph]
+# Only audit the platforms we actually ship for. Without this, cargo-deny walks
+# wasm/wasi/redox/android-only dependencies that are never built here, which
+# produces license and duplicate-version noise for code we do not distribute.
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "aarch64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+]
+# Audit every optional feature, not just the default ones.
+all-features = true
+
+[output]
+feature-depth = 1
+
+# ----------------------------------------------------------------------------
+# Advisories: vulnerabilities, unmaintained crates, yanked crates
+# ----------------------------------------------------------------------------
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+# Deny crates whose version was yanked from crates.io.
+yanked = "deny"
+# "all" also reports unmaintained crates reached transitively. Kept at the
+# strictest setting on purpose: the two known cases are ignored explicitly below
+# rather than silenced as a class, so a *new* unmaintained crate still fails CI.
+unmaintained = "all"
+# Every entry MUST carry a justification and be re-checked when its source
+# dependency is bumped. Both entries below are unmaintained notices (not
+# vulnerabilities) that come from sled 0.34 and have no upgrade path from here;
+# they disappear when sled moves to 1.x or the high-score backend changes.
+# For now just kept it, as the the 1;x is still beta
+ignore = [
+    { id = "RUSTSEC-2025-0057", reason = "fxhash unmaintained: transitive via sled 0.34, no safe upgrade available" },
+    { id = "RUSTSEC-2024-0384", reason = "instant unmaintained: transitive via sled 0.34 -> parking_lot 0.11, no safe upgrade available" },
+]
+
+# ----------------------------------------------------------------------------
+# Licenses
+# ----------------------------------------------------------------------------
+# rsnake itself is GPL-3.0-only, so copyleft-compatible permissive licenses are
+# what we need from dependencies. Anything not listed here fails the build on
+# purpose -- add it deliberately, with a note, rather than loosening the list.
+[licenses]
+# Kept to exactly the licenses present in the current graph, so that a new
+# license shows up as a CI failure and gets reviewed instead of sliding in.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "MIT",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+# A license file must match a known license text this closely to be accepted.
+confidence-threshold = 0.8
+
+# Per-crate escape hatches. Prefer these over widening `allow` above: they keep
+# an odd license scoped to the one crate that actually uses it.
+exceptions = [
+    # This crate. GPL-3.0-only is deliberately *not* in the global allow list so
+    # a GPL-licensed dependency cannot slip in unnoticed.
+    { crate = "rsnaker", allow = ["GPL-3.0-only"] },
+]
+
+# ----------------------------------------------------------------------------
+# Bans: duplicate versions and crates we never want linked in
+# ----------------------------------------------------------------------------
+[bans]
+# Warn rather than fail: duplicate versions in a transitive graph are usually
+# not ours to fix, but they are worth seeing in the log.
+multiple-versions = "warn"
+# Refuse `version = "*"` dependencies.
+wildcards = "deny"
+highlight = "all"
+allow = []
+deny = []
+skip = []
+skip-tree = []
+
+# ----------------------------------------------------------------------------
+# Sources: where crates are allowed to come from
+# ----------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

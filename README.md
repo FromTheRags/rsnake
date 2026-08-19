@@ -4,6 +4,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/fromtherags/rsnake)](https://github.com/FromTheRags/rsnake/commits)
 [![Build](https://github.com/FromTheRags/rsnake/actions/workflows/build.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/build.yml)
 [![Test](https://github.com/FromTheRags/rsnake/actions/workflows/test.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/test.yml)
+[![cargo-deny](https://github.com/FromTheRags/rsnake/actions/workflows/cargo-deny.yml/badge.svg)](https://github.com/FromTheRags/rsnake/actions/workflows/cargo-deny.yml)
 [![Last doc](https://img.shields.io/badge/docs-online-blue)](https://fromtherags.github.io/rsnake/rsnaker/index.html)
 [![Code lines](https://img.shields.io/badge/lines%20of%20code-4K-blue)](https://github.com/FromTheRags/rsnake)
 <!-- 
