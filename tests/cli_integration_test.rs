@@ -25,6 +25,16 @@ fn cli_integration_test_fails_on_invalid_velocity() {
         .failure()
         .stderr(contains("error").and(contains("super_sonic")));
 }
+
+#[test]
+fn cli_integration_test_help_contains_random() {
+    let path = cargo_bin!("rsnake");
+    let mut cmd = Command::new(path);
+    cmd.arg("--help")
+        .assert()
+        .success()
+        .stdout(contains("--random").and(contains("-r")));
+}
 #[test]
 #[ignore = "Fail on no TTY (as on github action) because of raw terminal mode, run it locally in cmd (not PWS) with cargo test -- --ignored"]
 fn cli_integration_test_working_default_args() {

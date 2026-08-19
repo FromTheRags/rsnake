@@ -17,4 +17,5 @@ pub mod high_score;
 pub mod logger;
 pub mod playing_logic;
 pub mod playing_thread_manager;
+pub mod random_helper;
 pub mod state;

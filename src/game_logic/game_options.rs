@@ -18,7 +18,7 @@ use unicode_segmentation::UnicodeSegmentation;
 /// Initial position of the snake's head at the start of the game
 pub const INI_POSITION: Position = Position { x: 50, y: 5 };
 //Options to not display in the table menu in-game parameters
-pub const ONLY_FOR_CLI_PARAMETERS: [&str; 2] = ["load", "no-"];
+pub const ONLY_FOR_CLI_PARAMETERS: [&str; 3] = ["load", "no-", "random"];
 //Later auto generates the header based on the help message as the in-game table menu
 #[allow(clippy::needless_raw_string_hashes)]
 const PARAMS_HEADER: &str = r#"
@@ -199,7 +199,7 @@ pub struct GameOptions {
         help = "Enable the fruit lifetime countdown and automatic replacement [default]"
     )]
     #[serde(skip, default = "default_false")]
-    no_fruit_timer: bool,
+    pub(crate) no_fruit_timer: bool,
     #[arg(
         long = "no-fruit-timer",
         default_value_t = true,
@@ -226,7 +226,7 @@ pub struct GameOptions {
         help = "Allow fruits that can shrink the snake [default]"
     )]
     #[serde(skip, default = "default_false")]
-    no_negative_size_fruits: bool,
+    pub(crate) no_negative_size_fruits: bool,
     #[arg(
         long = "no-negative-size-fruits",
         default_value_t = true,
@@ -256,7 +256,7 @@ pub struct GameOptions {
         help = "Set to caps FPS limit (max 60 FPS) [default] "
     )]
     #[serde(skip, default = "default_false")]
-    no_caps_fps: bool,
+    pub(crate) no_caps_fps: bool,
     #[arg(
         long = "no-caps-fps",
         default_value_t = true,
@@ -275,6 +275,14 @@ pub struct GameOptions {
     )]
     #[serde(skip)]
     pub load: Option<u16>,
+    /// Randomize all game parameters with playable values
+    #[arg(
+        short,
+        long,
+        help = "Randomize all game parameters with balanced, playable values"
+    )]
+    #[serde(skip)]
+    pub random: bool,
 }
 
 impl GameOptions {
@@ -391,6 +399,12 @@ impl GameOptions {
         let mut file = File::create(path)?;
         file.write_all(full_output.as_bytes())?;
         Ok(())
+    }
+
+    /// Returns a new `GameOptions` with randomized playable parameters using weighted distributions.
+    #[must_use]
+    pub fn random() -> Self {
+        crate::game_logic::random_helper::generate_random_game_options()
     }
 }
 

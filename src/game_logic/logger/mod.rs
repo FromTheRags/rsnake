@@ -13,7 +13,8 @@
 //! - **File Rotation:** Uses `tracing_appender` to centralize all application logs into a local file.
 //!
 //! ## Example Usage
-//! ```rust
+//! ```rust, no_run
+//! //No run to avoid to pollute the filesystem, yet checked as working
 //! use rsnaker::game_logic::logger::log_configuration::{init_logger, update_log_level, LogLevel};
 //! use tracing::{info, span, Level};
 //!     // 1. Initialize the global logger from a TOML configuration file

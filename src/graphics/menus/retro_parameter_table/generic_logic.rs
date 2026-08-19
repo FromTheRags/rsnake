@@ -1,5 +1,5 @@
-use crate::graphics::menus::retro_parameter_table::generic_style::{
-    get_formated_footer, ScrollBarCustomRetroStyle, TableCustomRetroStyle, DISPLAY_CELL_OUT_SPACE,
+use crate::graphics::menus::retro_parameter_table::generic_style::{DISPLAY_CELL_OUT_SPACE, ScrollBarCustomRetroStyle, TableCustomRetroStyle,
+                                                                   get_formated_footer,
 };
 use crate::graphics::menus::utils_layout::{
     calculate_max_column_widths, calculate_sum_inner_row_heights, constraint_length_from_widths,
@@ -8,9 +8,9 @@ use crossterm::event;
 use crossterm::event::{Event, KeyCode, KeyEventKind};
 use ratatui::widgets::FrameExt;
 use ratatui::{
-    layout::{Constraint, Layout}, widgets::Paragraph,
     DefaultTerminal,
     Frame,
+    layout::{Constraint, Layout}, widgets::Paragraph,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -45,6 +45,7 @@ pub enum TableParameterAction<'a> {
         u16,
         fn(u16) -> (Option<Vec<RowData>>, Option<Vec<FooterData>>),
     ),
+    Randomize(fn(Option<u16>, &[RowData]) -> Vec<RowData>),
 }
 
 // Define a generic cell value type
@@ -278,6 +279,18 @@ impl<'a> GenericMenu<'a> {
                                             &self.table_custom.headers,
                                             new_footer,
                                             Some(*index),
+                                        );
+                                    }
+                                    TableParameterAction::Randomize(randomizer) => {
+                                        let new_rows =
+                                            randomizer(self.current_preset, &self.table_custom.rows);
+                                        //Refresh all the GUI, so recreate the table with the new data and recalculate constraint
+                                        //Clean Rust way with self-overwriting
+                                        *self = Self::new(
+                                            new_rows,
+                                            &self.table_custom.headers,
+                                            self.info_footer_data.clone(),
+                                            self.current_preset,
                                         );
                                     }
                                 } //match

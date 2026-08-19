@@ -1,9 +1,10 @@
 use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
+use crate::game_logic::logger::log_configuration::LogLevel;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     get_default_action_input, ActionInputs, CellValue, FooterData, GenericMenu, RowData,
     TableParameterAction,
 };
-use clap::CommandFactory;
+use clap::{CommandFactory, ValueEnum};
 use crossterm::event::KeyCode;
 use ratatui::DefaultTerminal;
 
@@ -20,6 +21,12 @@ pub fn setup_and_run_cli_table_parameters(
             TableParameterAction::ApplyAndSave(options),
             TableParameterAction::Quit,
         ],
+    });
+    actions.push(ActionInputs {
+        key: vec![KeyCode::Char('r'), KeyCode::Char('R')],
+        action: vec![TableParameterAction::Randomize(
+            random_parameter_cli_in_table,
+        )],
     });
     // Add presets 1 to 7
     for i in 1..=7u16 {
@@ -133,6 +140,39 @@ fn load_parameter_cli_in_table(options: &mut GameOptions) -> Vec<RowData> {
     }
     rows
 }
+
+#[must_use]
+fn random_parameter_cli_in_table(
+    current_preset: Option<u16>,
+    current_rows: &[RowData],
+) -> Vec<RowData> {
+    let mut random_options = GameOptions::random();
+    random_options.load = current_preset;
+    if let Some(log_level) = extract_log_level_from_rows(current_rows) {
+        random_options.log_level = log_level;
+    }
+    load_parameter_cli_in_table(&mut random_options)
+}
+
+fn extract_log_level_from_rows(rows: &[RowData]) -> Option<LogLevel> {
+    for row in rows {
+        for cell in &row.cells {
+            if let CellValue::Options {
+                option_name,
+                values,
+                index,
+                ..
+            } = cell
+                && option_name == "--log-level"
+                && let Some(val_str) = values.get(*index)
+            {
+                return LogLevel::from_str(val_str, true).ok();
+            }
+        }
+    }
+    None
+}
+
 #[must_use]
 fn parameters_cli_get_headers() -> Vec<String> {
     vec![
@@ -153,6 +193,11 @@ pub fn parameters_cli_get_footer_data(current_preset: Option<u16>) -> Vec<Footer
         FooterData {
             symbol: "x/END".into(),
             text: "Quit & Save".into(),
+            value: None,
+        },
+        FooterData {
+            symbol: "r".into(),
+            text: "Random".into(),
             value: None,
         },
         FooterData {

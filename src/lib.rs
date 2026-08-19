@@ -53,12 +53,20 @@ use tracing::{debug, info};
 pub fn start_snake() {
     // get command line options and parsed them to check for errors (auto using value parser in clap)
     let mut args = GameOptions::parse();
+    let cli_random = args.random;
     //println!("{}", args.to_structured_toml());
     //load args from the already saved preset if its user choice
     if let Some(preset) = args.load {
         args = GameOptions::load_from_toml_preset(preset).unwrap_or_else(|_| {
             panic!("Fail to load Snake configuration file for preset {preset}")
         });
+    }
+    if cli_random {
+        let previous_log_level = args.log_level;
+        let previous_load = args.load;
+        args = GameOptions::random();
+        args.log_level = previous_log_level;
+        args.load = previous_load;
     }
 
     // Initialize logger: configuration (level, file name, time format and all
