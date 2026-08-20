@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: Install Rust (version pinned via rust-toolchain.toml)
         uses: actions-rust-lang/setup-rust-toolchain@v1
 
