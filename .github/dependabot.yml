@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      ci-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "CI"
+      include: "scope"
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    groups:
+      runtime-deps:
+        patterns:
+          - "*"
+      dev-deps:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: "Deps"
+      include: "scope"
