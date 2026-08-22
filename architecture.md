@@ -13,7 +13,7 @@ graph TD
     A[Main Thread / Render] --> B[Shared State]
     C[Logic Thread] --> B
     D[Input Thread] --> B
-    
+
     subgraph "Shared State (Arc < RwLock < T > >)"
         B1[GameState]
         B2[SnakeBody]
@@ -21,11 +21,11 @@ graph TD
         B4[FruitsManager]
         B5[Direction]
     end
-    
+
     subgraph "Components"
-        C --> |Update| B
-        D --> |Change Direction / Pause| B
-        A --> |Read & Draw| B
+        C -->|Update| B
+        D -->|Change Direction / Pause| B
+        A -->|Read & Draw| B
     end
 ```
 
@@ -42,11 +42,11 @@ The project leverages the Rust ecosystem for efficiency and reliability:
 
 ### ⚙️ Logic & Orchestration
 
-- **[Clap](https://clap.rs/)**: Handles command-line argument parsing with a derive-based API. It validates user
-  inputs (like snake symbols) at startup and generates the help menu.
+- **[Clap](https://clap.rs/)**: Handles command-line argument parsing with a derive-based API. It validates user inputs
+  (like snake symbols) at startup and generates the help menu.
 - **[Serde](https://serde.rs/) & [TOML](https://github.com/toml-rs/toml)**: The backbone for data serialization.
-    - **Configuration**: `GameOptions` uses Serde to load/save TOML presets. It supports attribute-based rename/alias (
-      e.g., mapping CLI `snake-length` to internal `snake_length`) and skips non-persistent fields.
+    - **Configuration**: `GameOptions` uses Serde to load/save TOML presets. It supports attribute-based rename/alias
+      (e.g., mapping CLI `snake-length` to internal `snake_length`) and skips non-persistent fields.
     - **Persistence**: High scores are serialized to TOML strings before being stored in Sled, allowing for easy manual
       inspection of the database if needed.
     - **Robustness**: Combined with custom validation logic, Serde ensures that loaded configurations are automatically
@@ -79,6 +79,27 @@ The game uses **[Sled](https://github.com/spacejam/sled)**, an embedded NoSQL ke
       logs) and where they are sent.
     - **Tracing-Appender**: Handles non-blocking writes to log files using a `WorkerGuard` to ensure all logs are
       flushed before the program exits.
+    - The logging subsystem is configured from a **dedicated** TOML file (`snake_log_config.toml`), separate from the
+      game options file. It is read **only once at startup**, and is **deserialization-only** (the game never writes
+      back to it). If the file is missing or invalid, sensible defaults are used.
+
+```toml
+# snake_log_config.toml
+level = "off"                                              # off, error, warn, info, debug, trace
+file_name = "snake.log"                                    # output log file (current directory)
+time_format = "[hour]:[minute]:[second].[subsecond digits:6]"  # `time` crate format description
+with_ansi = false                                          # ANSI colors in the log file
+with_target = false                                        # include the module path (target)
+with_thread_names = true                                   # include thread names
+with_thread_ids = false                                    # include thread ids
+with_line_number = true                                    # include source line numbers
+with_file = true                                           # include source file names
+with_level = true                                          # include the log level
+```
+
+The CLI flag `--log-level` (if explicitly set, i.e., not `off`) overrides the level coming from the TOML file via the
+hot-reload handle, as well as log option overrides if set in game-preset file/menu.
+
 - **[Chrono](https://github.com/chronotope/chrono)**: Manages timestamps for high scores, ensuring correct date/time
   serialization via Serde.
 - **[Time](https://github.com/time-rs/time)**: Used specifically for high-precision log timestamps in the `tracing`
@@ -154,16 +175,16 @@ graph LR
         F[Fruits Menu]
         P[Params Menu]
     end
-    
-    S & F & P --> |Provide RowData| GM[GenericMenu]
-    
+
+    S & F & P -->|Provide RowData| GM[GenericMenu]
+
     subgraph "Generic Infrastructure"
         GM --> Logic[generic_logic.rs]
         GM --> Style[generic_style.rs]
     end
-    
-    Logic --> |Navigation & Events| Ratatui[Ratatui Terminal]
-    Style --> |Custom Table Styling| Ratatui
+
+    Logic -->|Navigation & Events| Ratatui[Ratatui Terminal]
+    Style -->|Custom Table Styling| Ratatui
 ```
 
 - **Data Abstraction**: The menu operates on `RowData` containing `CellValue` variants (`Text` or `Options`). It doesn't
@@ -199,13 +220,12 @@ sequenceDiagram
     participant L as Logic Thread
     participant S as Shared State (RwLock)
     participant R as Render Thread
-
-    I->>S: Write (Direction Change)
-    Note over L,S: Wait for game tick
-    L->>S: Read (Current Position)
-    L->>S: Write (New Position / Collision)
+    I ->> S: Write (Direction Change)
+    Note over L, S: Wait for game tick
+    L ->> S: Read (Current Position)
+    L ->> S: Write (New Position / Collision)
     loop Every Frame (~16ms)
-        R->>S: Read (Full State)
-        R->>R: Draw to Terminal
+        R ->> S: Read (Full State)
+        R ->> R: Draw to Terminal
     end
 ```

@@ -1,3 +1,4 @@
+use crate::controls::playing_input::has_no_modifiers;
 use crate::graphics::menus::retro_parameter_table::generic_style::{DISPLAY_CELL_OUT_SPACE, ScrollBarCustomRetroStyle, TableCustomRetroStyle,
                                                                    get_formated_footer,
 };
@@ -239,6 +240,7 @@ impl<'a> GenericMenu<'a> {
             terminal.draw(|frame| self.draw(frame)).unwrap();
             if let Event::Key(key) = event::read().unwrap()
                 && key.kind == KeyEventKind::Press
+                && has_no_modifiers(&key)
             {
                 for action_input in &mut actions_inputs {
                     for key_code in action_input.key.clone() {

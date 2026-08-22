@@ -2,7 +2,7 @@ use crate::controls::direction::Direction;
 use crate::controls::main_menu::{ENTER_KEYS, NEXT_KEYS, PREVIOUS_KEYS};
 use crate::game_logic::state::{GameOverMenu, GameState, GameStatus};
 use crossterm::event;
-use crossterm::event::{KeyCode, KeyEventKind};
+use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use std::sync::{Arc, RwLock};
 use tracing::{error, info, warn};
 
@@ -17,6 +17,15 @@ pub const PAUSE_KEYS: [KeyCode; 4] = [
     KeyCode::Char('-'),
 ];
 pub const RESET_KEYS: [KeyCode; 2] = [KeyCode::Char('r'), KeyCode::Char('R')];
+/// Returns whether a key event has no active modifier keys.
+///
+/// Game controls intentionally only react to bare key presses so terminal and
+/// operating-system shortcuts such as Alt+Tab or Ctrl+C are never interpreted
+/// as game actions.
+#[must_use]
+pub fn has_no_modifiers(key: &KeyEvent) -> bool {
+    key.modifiers == KeyModifiers::NONE
+}
 
 /// You cannot block middle-click paste/scroll behavior from inside your Rust TUI app.
 /// If you really want to disable it, you would have to modify user system settings or terminal emulator config
@@ -28,6 +37,7 @@ pub fn playing_input_loop(direction: &Arc<RwLock<Direction>>, gs: &Arc<RwLock<Ga
     loop {
         if let Ok(event::Event::Key(key)) = event::read()
             && key.kind == KeyEventKind::Press
+            && has_no_modifiers(&key)
         {
             let mut gs_guard = gs.write().unwrap();
             // Handle GameOver navigation separately

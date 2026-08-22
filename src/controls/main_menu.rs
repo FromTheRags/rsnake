@@ -1,3 +1,4 @@
+use crate::controls::playing_input::has_no_modifiers;
 use crate::controls::playing_input::{QUIT_KEYS, START_KEYS};
 use crate::game_logic::game_options::GameOptions;
 use crate::game_logic::logger::log_configuration::update_log_level;
@@ -5,7 +6,7 @@ use crate::graphics::menus::edge_snake::SPEED_MOVING_SNAKE_SLEEP_TIME_MS;
 use crate::graphics::menus::main_menu::SwitchMenu::{
     Doc, Fruits, Highs, Main, Parameters, Run, Speed,
 };
-use crate::graphics::menus::main_menu::{display_main_menu, SwitchMenu};
+use crate::graphics::menus::main_menu::{SwitchMenu, display_main_menu};
 use crate::graphics::menus::retro_parameter_table::customized_with_doc::setup_and_run_doc_table_parameters;
 use crate::graphics::menus::retro_parameter_table::customized_with_edit::setup_and_run_cli_table_parameters;
 use crate::graphics::menus::retro_parameter_table::customized_with_fruits::setup_and_run_fruits_table_parameters;
@@ -172,7 +173,7 @@ pub fn main_menu_event() -> MainMenuInput {
     if let event::Event::Key(key) = event::read().expect("Error reading key event") {
         match key.kind {
             //If a key is pressed
-            KeyEventKind::Press => {
+            KeyEventKind::Press if has_no_modifiers(&key) => {
                 flush_input_buffer();
                 // If it is a directional key
                 if START_KEYS.contains(&key.code) {

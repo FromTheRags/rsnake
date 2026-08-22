@@ -31,7 +31,7 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 ## TODO
 
-- [ ] Add timers to fruits for a custom snake mode ⏲️
+- [x] Add timers to fruits for a custom snake mode ⏲️
 - [x] Add some performance logs with tracing,
   for [example](https://github.com/ratatui/ratatui/blob/main/examples/apps/tracing/src/main.rs)
 - [x] Enhance all table parameters based on the generic one
@@ -45,8 +45,8 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 ### TOML Presets
 
 - To save a set of parameters:
-    - Use the in-game menu "edit", load a slot
-      (with a number between 1 and 7), make your modification with arrows keys, then save with 'x'
+    - Use the in-game menu "edit", load a slot (with a number between 1 and 7), make your modification with arrows keys,
+      then save with 'x'
     - Create and alias for the CI option
 - Then load with `--load` option or using the in-game menu "edit".  
   NB: You can download some of the [Best Configurations](Best_configurations) and put it in the same folder as the
@@ -70,8 +70,7 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 - Run the executable using the terminal or double-click on the file if your OS supports it.
 - For windows:
     - Search for "Terminal" in the search menu to launch it and **set as default** (to be able to run the snake by
-      double-clicking the .exe) or run rsnake from the terminal
-      with:
+      double-clicking the .exe) or run rsnake from the terminal with:
     - `cd "download path"` then `.\rsnake-x86_64-pc-windows-msvc.exe`
 - For Linux/macOS/android:
     - `cd "download path" && ./rsnake-x86_64-unknown-linux-gnu` (or `./rsnake-x86_64-apple-darwin` on macOS)
@@ -85,8 +84,7 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 - 🦀 **Have Rust and compilation tools installed**  
   If you don't have Rust yet:
     - On **Windows**, Install Rust using the official .exe installer https://www.rust-lang.org/tools/install (as it
-      works
-      Out-Of-The-Box on Windows)
+      works Out-Of-The-Box on Windows)
     - On **Linux** 👉 [Installation Rust and tools for Linux](#Installation-of-Rust-and-tools-for-Linux) for instructions
     - On **Android** use a linux emulator and follow the same instruction as linux, tested with:
         - [Android using Ubuntu](https://github.com/CypherpunkArmory/UserLAnd),
@@ -106,9 +104,8 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
 
 ### Logging Configuration
 
-The logging subsystem is configured from a **dedicated** TOML file (`snake_log_config.toml`),
-separate from the game options file. It is read **only once at startup**, and is **deserialization-only** (the game
-never writes back to it).
+The logging subsystem is configured from a **dedicated** TOML file (`snake_log_config.toml`), separate from the game
+options file. It is read **only once at startup**, and is **deserialization-only** (the game never writes back to it).
 If the file is missing or invalid, sensible defaults are used.
 
 ```toml
@@ -125,8 +122,8 @@ with_file = true                                           # include source file
 with_level = true                                          # include the log level
 ```
 
-The CLI flag `--log-level` (if explicitly set, i.e., not `off`) overrides the level coming from
-the TOML file via the hot-reload handle, as well as log option overrides if set in game-preset file/menu.
+The CLI flag `--log-level` (if explicitly set, i.e., not `off`) overrides the level coming from the TOML file via the
+hot-reload handle, as well as log option overrides if set in game-preset file/menu.
 
 ## Architecture
 

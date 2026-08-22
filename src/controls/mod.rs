@@ -7,7 +7,6 @@
 //! - `speed`: defines game logic speed.
 //!
 //! These modules collectively contribute to the control part of the game logic.
-//!
 
 pub mod direction;
 pub mod main_menu;
