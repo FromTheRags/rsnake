@@ -28,9 +28,9 @@
 //! - `cargo doc --document-private-items --no-deps --open`
 //!
 //! ## Tests
-//!  - As usual run them with `cargo test` the project is set up with a lib containing all the code, and a main.rs just calling it
+//!  - As usual, run them with `cargo test` the project is set up with a lib containing all the code, and a main.rs just calling it
 //!  - As this is a widespread pattern providing full compliance with the Rust test ecosystem, allowing doc comment to be automatically tested, for example.
-//! For more details, see [readme.md](https://github.com/FromTheRags/rsnake/blob/main/README.md)
+//!    For more details, see [readme.md](https://github.com/FromTheRags/rsnake/blob/main/README.md)
 
 pub mod controls;
 pub mod game_logic;

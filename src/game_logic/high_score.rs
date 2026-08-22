@@ -11,20 +11,29 @@ pub struct HighScore {
     pub symbols: String,
     pub score: u32,
     pub speed: String,
+    // snake_growth_factor is a new field that we added to the HighScore struct,
+    // add a default value for backward compatibility
+    #[serde(default = "default_snake_growth_factor")]
+    pub snake_growth_factor: u16,
     pub date: DateTime<Utc>,
     pub version: String,
 }
 impl HighScore {
     #[must_use]
-    pub fn new(symbols: String, score: u32, speed: String) -> Self {
+    pub fn new(symbols: String, score: u32, speed: String, snake_growth_factor: u16) -> Self {
         HighScore {
             symbols,
             score,
             speed,
+            snake_growth_factor,
             date: Utc::now(),
             version: env!("CARGO_PKG_VERSION").to_string(),
         }
     }
+}
+/// Add a default value (in function because of serde) to adapt for older entries in db without `snake_growth` without breaking
+const fn default_snake_growth_factor() -> u16 {
+    1
 }
 /// # Motivation for this DB
 /// To use something else than SQL DB to change ;) Top-edge DB
@@ -42,7 +51,7 @@ impl HighScore {
 /// # Why TOML serialisation
 /// - Provide a better visualization by hands
 /// - Not too much data, TOML overhead is unseen
-/// - Already used for arguments serialisation, avoid a new dependency
+/// - Already used for argument serialisation, avoid a new dependency
 ///   (and the bincode crate story is a lesson-teller)
 /// - NB: on other projects with others constrains postcard,rkyv,or borsh
 pub struct HighScoreManager {
@@ -215,7 +224,7 @@ mod tests {
         let db_path = dir.path().join("test_high_scores.db");
         let manager = HighScoreManager::new_with_custom_path(db_path).unwrap();
 
-        let score = HighScore::new("🐍•".to_string(), 100, "Normal".into());
+        let score = HighScore::new("🐍•".to_string(), 100, "Normal".into(), 2);
 
         manager.save_score(&score).unwrap();
 
@@ -223,6 +232,21 @@ mod tests {
         assert_eq!(top_scores.len(), 1);
         assert_eq!(top_scores[0].score, 100);
         assert_eq!(top_scores[0].symbols, "🐍•");
+        assert_eq!(top_scores[0].snake_growth_factor, 2);
+    }
+
+    #[test]
+    fn test_old_high_score_defaults_growth_factor() {
+        let score = HighScore::new("🐍•".to_string(), 100, "Normal".into(), 2);
+        let legacy_toml = toml::to_string(&score)
+            .unwrap()
+            .lines()
+            .filter(|line| !line.starts_with("snake_growth_factor"))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let loaded: HighScore = toml::from_str(&legacy_toml).unwrap();
+        assert_eq!(loaded.snake_growth_factor, 1);
     }
 
     #[test]
@@ -234,7 +258,7 @@ mod tests {
         let scores = vec![200, 50, 100];
         for s in scores {
             manager
-                .save_score(&HighScore::new("S".to_string(), s, "Normal 🐢".into()))
+                .save_score(&HighScore::new("S".to_string(), s, "Normal 🐢".into(), 1))
                 .unwrap();
         }
 

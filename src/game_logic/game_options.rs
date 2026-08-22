@@ -27,6 +27,7 @@ const PARAMS_HEADER: &str = r#"
 # negative_size_fruits: allow fruits that can shrink the snake
 # fruit_timer:      enable fruit lifetime countdown and auto-replacement
 # fruit_duration_seconds: base lifetime of a fruit before multipliers are applied
+# snake_growth_factor: multiplier applied to each fruit's base snake-size effect
 # caps_fps:         Enable frame limiting (default to true, false = no limit)
 # life:             starting lives
 # nb_of_fruits:     number of fruits available in the game at once
@@ -75,6 +76,7 @@ SNAKE_LENGTH: 2 => 999,
 LIFE: 1 => 99,
 NB_OF_FRUITS : 1 => 999,
 FRUIT_DURATION_SECONDS: 1 => 60,
+SNAKE_GROWTH_FACTOR: 1 => 10,
 PRESETS: 1 => 7,
 }
 const MAX_EMOJI_BY_LINE_COUNT: u16 = 19;
@@ -219,6 +221,18 @@ pub struct GameOptions {
     )]
     pub fruit_duration_seconds: u16,
 
+    /// Multiplier applied to the hardcoded snake-size effect of each fruit.
+    #[arg(
+        long,
+        default_value_t = 1,
+        value_parser = get_parameter_range_parser(SNAKE_GROWTH_FACTOR),
+        help = format!(
+            "Multiplies each fruit's base snake growth or shrink effect {}",
+            pretty(get_parameter_range(SNAKE_GROWTH_FACTOR).unwrap())
+        )
+    )]
+    pub snake_growth_factor: u16,
+
     /// Allow fruits with negative size effects.
     #[arg(
         long = "negative-size-fruits",
@@ -330,6 +344,10 @@ impl GameOptions {
         clamp_to(
             &mut self.fruit_duration_seconds,
             get_parameter_range(FRUIT_DURATION_SECONDS),
+        );
+        clamp_to(
+            &mut self.snake_growth_factor,
+            get_parameter_range(SNAKE_GROWTH_FACTOR),
         );
         if let Some(preset) = &mut self.load {
             clamp_to(preset, get_parameter_range(PRESETS));
@@ -484,22 +502,26 @@ mod tests {
         options.snake_length = 1000;
         options.life = 100;
         options.nb_of_fruits = 1000;
+        options.snake_growth_factor = 11;
         options.load = Some(8);
         options.validate();
         assert_eq!(options.snake_length, 999);
         assert_eq!(options.life, 99);
         assert_eq!(options.nb_of_fruits, 999);
+        assert_eq!(options.snake_growth_factor, 10);
         assert_eq!(options.load, Some(7));
 
         // Values below or at min
         options.snake_length = 1;
         options.life = 0;
         options.nb_of_fruits = 0;
+        options.snake_growth_factor = 0;
         options.load = Some(0);
         options.validate();
         assert_eq!(options.snake_length, 2);
         assert_eq!(options.life, 1);
         assert_eq!(options.nb_of_fruits, 1);
+        assert_eq!(options.snake_growth_factor, 1);
         assert_eq!(options.load, Some(1));
     }
 

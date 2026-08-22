@@ -20,7 +20,12 @@ pub fn playing_logic_loop(
     gs: &Arc<RwLock<GameState>>,
     carte: &Arc<RwLock<Map>>,
     fruits_manager: &Arc<RwLock<FruitsManager>>,
-    (game_speed, snake_symbols, negative_size_fruits): (Speed, String, bool),
+    (game_speed, snake_symbols, negative_size_fruits, snake_growth_factor): (
+        Speed,
+        String,
+        bool,
+        u16,
+    ),
 ) {
     let mut gsc;
     debug!(fruits = ?fruits_manager.read().unwrap().get_fruits(), "Initial fruits on map");
@@ -43,10 +48,17 @@ pub fn playing_logic_loop(
                 if let Some(fruits) = fruits {
                     debug!(count = fruits.len(), "Fruits eaten by snake");
                     let score_fruits = fruits.iter().map(Fruit::get_score).sum::<i32>();
-                    let size_effect = fruits.iter().map(Fruit::get_grow_snake).sum::<i16>();
+                    let base_size_effect = fruits
+                        .iter()
+                        .map(Fruit::get_grow_snake)
+                        .map(i32::from)
+                        .sum::<i32>();
+                    let size_effect = i16::try_from(base_size_effect
+                        .saturating_mul(i32::from(snake_growth_factor))
+                        .clamp(i32::from(i16::MIN), i32::from(i16::MAX))).unwrap();
                     info!(?fruits, "Fruit characteristics");
                     // In classic-like mode, negative fruits are disabled.
-                    if negative_size_fruits || size_effect > 0 {
+                    if negative_size_fruits || size_effect > 0i16 {
                         write_guard.relative_size_change(size_effect);
                     }
                     //NB:Converting an u16 to an i32 is always safe in Rust because the range of u16 (0 to 65,535)
@@ -103,6 +115,7 @@ pub fn playing_logic_loop(
                                 score_value,
                                 //using Display implementation
                                 game_speed.to_string(),
+                                snake_growth_factor,
                             ));
                             state_guard.rank = rank.unwrap_or(None);
                         }

@@ -28,6 +28,7 @@ fn load_highs_info_in_table() -> Vec<RowData> {
                 CellValue::new(score.symbols),
                 CellValue::new(format!("{}", score.score)),
                 CellValue::new(score.speed),
+                CellValue::new(format!("x{}", score.snake_growth_factor)),
                 CellValue::new(score.date.format("%d/%m/%Y").to_string()),
                 CellValue::new(score.version),
             ]));
@@ -39,6 +40,7 @@ fn load_highs_info_in_table() -> Vec<RowData> {
             CellValue::new("No scores".to_string()),
             CellValue::new("Play the game!".to_string()),
             CellValue::new("🐍".to_string()),
+            CellValue::new("-".to_string()),
             CellValue::new("-".to_string()),
             CellValue::new("-".to_string()),
             CellValue::new("-".to_string()),
@@ -56,6 +58,7 @@ fn highs_get_headers() -> Vec<String> {
         "👤 Head & Body".to_string(),
         "🎯 Score".to_string(),
         "🏁 Celerity ".to_string(),
+        "📏 Growth".to_string(),
         "📅 Date".to_string(),
         "🐍 Version".to_string(),
     ]

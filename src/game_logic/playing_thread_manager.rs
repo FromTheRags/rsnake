@@ -140,6 +140,7 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
         //Game speed is a constant by game, so we can clone it normally
         let current_game_speed = self.speed;
         let negative_size_fruits = self.options.negative_size_fruits;
+        let snake_growth_factor = self.options.snake_growth_factor;
         let snake_symbols = format!("{}{}", self.options.head_symbol, self.options.body_symbol);
         //In a scope to have auto cleaning by auto join at the end of the main thread
         thread::scope(|s| {
@@ -154,7 +155,12 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
                         &logic_gs,
                         &carte,
                         &fruits_manager,
-                        (current_game_speed, snake_symbols, negative_size_fruits),
+                        (
+                            current_game_speed,
+                            snake_symbols,
+                            negative_size_fruits,
+                            snake_growth_factor,
+                        ),
                     );
                 })
                 .expect("Unable to create the thread");

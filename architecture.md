@@ -1,19 +1,15 @@
-# rsnaker Architecture
+# Rsnaker Architecture
 
 This document provides a detailed overview of the software architecture, technical choices, and concurrency model of the
 **rsnaker** project.
 
 ## 1. System Overview
 
-**rsnaker** is a terminal-based game (TUI) built with Rust. It follows a decoupled architecture where game logic,
+**Rsnaker** is a terminal-based game (TUI) built with Rust. It follows a decoupled architecture where game logic,
 rendering, and input handling operate independently to ensure a smooth 60 FPS experience despite terminal constraints.
 
 ```mermaid
 graph TD
-    A[Main Thread / Render] --> B[Shared State]
-    C[Logic Thread] --> B
-    D[Input Thread] --> B
-
     subgraph "Shared State (Arc < RwLock < T > >)"
         B1[GameState]
         B2[SnakeBody]
@@ -23,9 +19,12 @@ graph TD
     end
 
     subgraph "Components"
-        C -->|Update| B
-        D -->|Change Direction / Pause| B
-        A -->|Read & Draw| B
+        C[Logic Thread] <-->|Read / Update| B[Shared State]
+        D[Input Thread] -->|Write inputs| B
+        A[Main Thread / Render] <-->|Read & Draw| B
+    end
+    subgraph "Fire & forget threads"
+        Z[Logging with tracing]
     end
 ```
 

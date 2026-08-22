@@ -4,6 +4,7 @@
 # caps_fps:         Enable frame limiting (default to true, false = no limit)
 # life:             starting lives
 # nb_of_fruits:     number of fruits available in the game at once
+# snake_growth_factor: multiplier applied to each fruit's base snake-size effect
 # body_symbol:      character for the snake's body  
 # head_symbol:      character for the snake's head
 # snake_length:     initial length of the snake
@@ -15,6 +16,7 @@ body_symbol = "🍁"
 snake_length = 50
 life = 1
 nb_of_fruits = 10
+snake_growth_factor = 1
 log_level = "off"
 caps_fps = true
 classic_mode = true
