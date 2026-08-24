@@ -41,7 +41,14 @@ jobs:
         with:
           target: ${{ matrix.target }}
 
+      - name: Build musl release binary (PIE) #PIE is mandatory for Android AArch64 native binary
+        if: matrix.target == 'aarch64-unknown-linux-musl'
+        env:
+          RUSTFLAGS: -C relocation-model=pie
+        run: cargo build --release --target=${{ matrix.target }}
+
       - name: Build release binary
+        if: matrix.target != 'aarch64-unknown-linux-musl'
         run: cargo build --release --target=${{ matrix.target }}
 
       - name: Rename output binary (Unix)
