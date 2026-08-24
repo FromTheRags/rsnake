@@ -60,7 +60,7 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
           For easier use, END key works as ENTER, "-" as a pause key, HOME for Menu, Tab to quit.
     - Take the ARM binaries from the release page (static build for broader compatibility)
     ```bash 
-      wget -O rsnake https://github.com/FromTheRags/rsnake/releases/download/v0.4.0/rsnake-aarch64-unknown-linux-musl
+      wget -O rsnake https://github.com/FromTheRags/rsnake/releases/latest/download/rsnake-aarch64-unknown-linux-musl
       chmod +x rsnake
       ./rsnake
 
