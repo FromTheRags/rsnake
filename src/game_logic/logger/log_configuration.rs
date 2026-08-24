@@ -8,7 +8,7 @@ use time::format_description::OwnedFormatItem;
 use tracing_appender::non_blocking;
 use tracing_subscriber::fmt::time::LocalTime;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::{fmt, reload, EnvFilter, Registry};
+use tracing_subscriber::{EnvFilter, Registry, fmt, reload};
 
 /// Default path to the logging configuration file (separate from game options).
 pub const DEFAULT_LOG_CONFIG_PATH: &str = "snake_log_config.toml";

@@ -53,9 +53,12 @@ pub fn playing_logic_loop(
                         .map(Fruit::get_grow_snake)
                         .map(i32::from)
                         .sum::<i32>();
-                    let size_effect = i16::try_from(base_size_effect
-                        .saturating_mul(i32::from(snake_growth_factor))
-                        .clamp(i32::from(i16::MIN), i32::from(i16::MAX))).unwrap();
+                    let size_effect = i16::try_from(
+                        base_size_effect
+                            .saturating_mul(i32::from(snake_growth_factor))
+                            .clamp(i32::from(i16::MIN), i32::from(i16::MAX)),
+                    )
+                    .unwrap();
                     info!(?fruits, "Fruit characteristics");
                     // In classic-like mode, negative fruits are disabled.
                     if negative_size_fruits || size_effect > 0i16 {

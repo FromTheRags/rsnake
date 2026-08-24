@@ -16,13 +16,13 @@
 //!
 //! ## References
 //! - Clippy lints: <https://github.com/rust-lang/rust-clippy/>
-//! - Ratatui tutorial: <https://ratatui.rs/tutorials/hello-world/>
+//! - Ratatui tutorial: <https://ratatui.rs/tutorials/hello-ratatui/>
 //! - Example: <https://ratatui.rs/examples/widgets/canvas/>
 //!
 //! ## Architecture
 //! - Uses `RwLock` for synchronization.
 //! - Spawns separate threads for input handling, rendering (60Hz), and game logic execution.
-//! - For more details, see [architecture.md](https://github.com/FromTheRags/rsnake/blob/main/architecture.md).
+//! - For more details, see [ARCHITECTURE.md](https://github.com/FromTheRags/rsnake/blob/main/ARCHITECTURE.md).
 //!
 //! ## Documentation generation
 //! - `cargo doc --document-private-items --no-deps --open`

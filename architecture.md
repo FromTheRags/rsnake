@@ -41,7 +41,7 @@ The project leverages the Rust ecosystem for efficiency and reliability:
 
 ### ⚙️ Logic & Orchestration
 
-- **[Clap](https://clap.rs/)**: Handles command-line argument parsing with a derive-based API. It validates user inputs
+- **[Clap](https://docs.rs/clap)**: Handles command-line argument parsing with a derive-based API. It validates user inputs
   (like snake symbols) at startup and generates the help menu.
 - **[Serde](https://serde.rs/) & [TOML](https://github.com/toml-rs/toml)**: The backbone for data serialization.
     - **Configuration**: `GameOptions` uses Serde to load/save TOML presets. It supports attribute-based rename/alias

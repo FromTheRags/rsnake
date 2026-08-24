@@ -1,6 +1,6 @@
 [package]
 name = "rsnaker"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 authors = ["RF"]
 description = "A good old retro Snake in terminal UI"
@@ -10,7 +10,7 @@ repository = "https://github.com/FromTheRags/rsnake"
 readme = "README.md"
 keywords = ["Ratatui", "TUI", "Snake", "Game", "retro"]
 categories = ["command-line-utilities"]
-rust-version = "1.88.0"
+rust-version = "1.95.0"
 
 #remember to update using: cargo update --verbose
 #and Rust/clippy with: rustup update
@@ -28,10 +28,10 @@ clap = { version = "4.5", features = ["derive"] }
 #Use for serialization/deserialization of game parameters
 serde = { version = "1.0", features = ["derive"] }
 #Use for game parameters saving/loading to file (better than to store a bunch of command line arguments as raw text)
-toml = "1.0.2"
+toml = "1.1.2"
 #toml_edit = "0.25"
 #Use in macro for clap, to check input is one grapheme-long (One character)
-unicode-segmentation = "1.12.0"
+unicode-segmentation = "1.13.0"
 #Use for high score database, and a little fun of not using a sql one
 sled = "0.34"
 #Use for dates in high scores
@@ -50,7 +50,7 @@ tracing-appender = "0.2"
 #For testing cli easily
 [dev-dependencies]
 tempfile = "3"
-assert_cmd = { version = "2.1" }
+assert_cmd = { version = "2.2" }
 predicates = "3.1.3"
 
 [[bin]]

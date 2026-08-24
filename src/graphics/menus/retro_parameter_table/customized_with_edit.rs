@@ -1,8 +1,8 @@
-use crate::game_logic::game_options::{get_parameter_range, GameOptions, ONLY_FOR_CLI_PARAMETERS};
+use crate::game_logic::game_options::{GameOptions, ONLY_FOR_CLI_PARAMETERS, get_parameter_range};
 use crate::game_logic::logger::log_configuration::LogLevel;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    get_default_action_input, ActionInputs, CellValue, FooterData, GenericMenu, RowData,
-    TableParameterAction,
+    ActionInputs, CellValue, FooterData, GenericMenu, RowData, TableParameterAction,
+    get_default_action_input,
 };
 use clap::{CommandFactory, ValueEnum};
 use crossterm::event::KeyCode;

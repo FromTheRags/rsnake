@@ -5,9 +5,9 @@
 //! balanced and playable.
 
 use crate::controls::speed::Speed;
-use crate::game_logic::game_options::{GameOptions, DISPLAYABLE_EMOJI};
+use crate::game_logic::game_options::{DISPLAYABLE_EMOJI, GameOptions};
 use crate::game_logic::logger::log_configuration::LogLevel;
-use rand::{rng, RngExt};
+use rand::{RngExt, rng};
 use std::ops::RangeInclusive;
 
 /// Picks a random value from a slice of weighted ranges.

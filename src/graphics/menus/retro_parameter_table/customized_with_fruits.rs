@@ -1,8 +1,8 @@
 use crate::game_logic::game_options::GameOptions;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    get_default_action_input, CellValue, FooterData, GenericMenu, RowData,
+    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
 };
-use crate::graphics::sprites::fruit::{Fruit, FRUITS_SCORES_PROBABILITIES};
+use crate::graphics::sprites::fruit::{FRUITS_SCORES_PROBABILITIES, Fruit};
 use ratatui::DefaultTerminal;
 use std::time::Duration;
 

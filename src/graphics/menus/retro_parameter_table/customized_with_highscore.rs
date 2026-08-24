@@ -1,6 +1,6 @@
 use crate::game_logic::high_score::HighScoreManager;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
-    get_default_action_input, CellValue, FooterData, GenericMenu, RowData,
+    CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
 };
 use ratatui::DefaultTerminal;
 
