@@ -49,7 +49,7 @@ jobs:
 
       - name: Install cargo-ndk
         if: matrix.target == 'aarch64-linux-android'
-        run: cargo install cargo-ndk
+        run: cargo install cargo-ndk --locked
 
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -66,10 +66,11 @@ jobs:
         if: matrix.target == 'aarch64-linux-android'
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           cargo ndk \
             --target ${{ matrix.target }} \
-            --android-platform 21 \
+            --platform 21 \
             -- build --release
 
       - name: Build release binary
