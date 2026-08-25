@@ -50,19 +50,32 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
       double-clicking the .exe) or run rsnake from the terminal with:
     - `cd "download path"` then `.\rsnake-x86_64-pc-windows-msvc.exe`
 - For Linux/macOS:
-    - `cd "download path" && ./rsnake-x86_64-unknown-linux-gnu` (or `./rsnake-x86_64-apple-darwin` on macOS)
+    - `cd "download path" && ./rsnake-x86_64-unknown-linux-musl` (or `./rsnake-x86_64-apple-darwin` on macOS)
 - For android:
+    - Dedicated Android binary (`rsnake-aarch64-linux-android`) or static musl build
+      (`rsnake-aarch64-unknown-linux-musl`) for emulated linux with proot.
+    - For easier use, END key works as ENTER, "-" as a pause key, HOME for Menu, Tab to quit.
     - Use a linux emulator, tested with:
-        - [Android using Ubuntu](https://github.com/CypherpunkArmory/UserLAnd) (I have committed
+        - [UserLand](https://github.com/CypherpunkArmory/UserLAnd) (I have committed
           a [PR](https://github.com/CypherpunkArmory/UserLAnd-Assets-Support/pull/144) to be integrated by default,
-          see [fork](https://github.com/FromTheRags/UserLAnd-Assets-Support))
-        - [Termux](https://github.com/termux/termux-app)  
-          For easier use, END key works as ENTER, "-" as a pause key, HOME for Menu, Tab to quit.
-    - Take the ARM binaries from the release page (static build for broader compatibility)
+          see [fork](https://github.com/FromTheRags/UserLAnd-Assets-Support)), with debian/Ubuntu. Use the
+          `rsnake-aarch64-unknown-linux-musl` version.
+        - [Android 17 build-in terminal Terminal Android (Debian / AVF)](https://source.android.com/docs/core/virtualization/usecases), [Getting started guide](https://itsfoss.com/news/google-android-linux-terminal-rollout/)
+          use the `rsnake-aarch64-unknown-linux-musl` version.
+        - [Andronix](https://andronix.app/): not tested but should work (as it is proot based). Use the
+          `rsnake-aarch64-unknown-linux-musl` version.
+        - [Termux](https://github.com/termux/termux-app)
+          or [ADB Shell](https://developer.android.com/tools/adb#shellcommands) use the `rsnake-aarch64-linux-android`
+          version.
+
+    - Download from the release page:
     ```bash 
+      wget -O rsnake https://github.com/FromTheRags/rsnake/releases/latest/download/rsnake-aarch64-linux-android
+      # or
       wget -O rsnake https://github.com/FromTheRags/rsnake/releases/latest/download/rsnake-aarch64-unknown-linux-musl
       chmod +x rsnake
       ./rsnake
+    ```
 
 In case pre-build binaries are not enough, you can build from
 source [Installation from source](#installation-from-source)

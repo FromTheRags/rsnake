@@ -9,46 +9,71 @@ jobs:
   release:
     name: Build and Upload Binaries
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            bin_ext: ""
+            target: x86_64-unknown-linux-musl    # static binary, no glibc version issues on older distributions
 
           - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-musl   # static binary, not LIB C version issue with old distributions
-            bin_ext: ""
+            target: aarch64-unknown-linux-musl   # static binary, no glibc version issues on older distributions
+
+          - os: ubuntu-latest
+            target: aarch64-linux-android
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc # NB: on Windows two majors build-chains: x86_64-pc-windows-gnu & x86_64-pc-windows-msvc
-            bin_ext: ".exe"  #On github action already windows-latest has Visual Studio Build Tools, so better windows version
 
           - os: macos-latest
             target: x86_64-apple-darwin
-            bin_ext: ""
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install musl toolchain (aarch64)
-        if: matrix.target == 'aarch64-unknown-linux-musl'
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Install musl toolchain
+        if: matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools musl-dev
+
+      - name: Setup Android NDK
+        if: matrix.target == 'aarch64-linux-android'
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27
+
+      - name: Install cargo-ndk
+        if: matrix.target == 'aarch64-linux-android'
+        run: cargo install cargo-ndk
 
       - name: Set up Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           target: ${{ matrix.target }}
 
-      - name: Build musl release binary (PIE) #PIE is mandatory for Android AArch64 native binary
-        if: matrix.target == 'aarch64-unknown-linux-musl'
+      - name: Build musl release binary (Static PIE) #
+        if: matrix.target == 'x86_64-unknown-linux-musl' || matrix.target == 'aarch64-unknown-linux-musl'
         env:
-          RUSTFLAGS: -C relocation-model=pie
+          RUSTFLAGS: "-C relocation-model=pie -C target-feature=+crt-static"
         run: cargo build --release --target=${{ matrix.target }}
 
+      - name: Build Android release binary #API 21 = Android 5.0 Lollipop introduce aarch64 ABI
+        if: matrix.target == 'aarch64-linux-android'
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          cargo ndk \
+            --target ${{ matrix.target }} \
+            --android-platform 21 \
+            -- build --release
+
       - name: Build release binary
-        if: matrix.target != 'aarch64-unknown-linux-musl'
+        if: matrix.target != 'x86_64-unknown-linux-musl' && matrix.target != 'aarch64-unknown-linux-musl' && matrix.target != 'aarch64-linux-android'
         run: cargo build --release --target=${{ matrix.target }}
 
       - name: Rename output binary (Unix)
@@ -56,8 +81,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/rsnake${{ matrix.bin_ext }} \
-             dist/rsnake-${{ matrix.target }}${{ matrix.bin_ext }}
+          cp target/${{ matrix.target }}/release/rsnake \
+             dist/rsnake-${{ matrix.target }}
 
       - name: Rename output binary (Windows)
         if: runner.os == 'Windows'

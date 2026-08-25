@@ -3,7 +3,8 @@ name: Publish to crates.io
 on:
   push:
     tags:
-      - 'v*'  # exemple : v0.1.0
+      - 'v*'       # example : v0.1.0
+      - '!*beta*'  # ignore beta version (e.g., v0.4.0-beta)
 
 jobs:
   publish:
