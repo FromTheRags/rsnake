@@ -66,7 +66,9 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
           `rsnake-aarch64-unknown-linux-musl` version.
         - [Termux](https://github.com/termux/termux-app)
           or [ADB Shell](https://developer.android.com/tools/adb#shellcommands) use the `rsnake-aarch64-linux-android`
-          version.
+          version. For termux, install wget with `pkg install wget`.After running the snake **left swipes** and
+          long-press the **keyboard icon** to enable/disable extra keys for better gaming
+          (see [Termux Touch Keyboard](https://wiki.termux.com/wiki/Touch_Keyboard))
 
     - Download from the release page:
     ```bash 
