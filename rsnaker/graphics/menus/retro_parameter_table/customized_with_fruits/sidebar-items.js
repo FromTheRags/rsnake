@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["fruits_get_footer_data","fruits_get_headers","load_fruits_info_in_table","setup_and_run_fruits_table_parameters"]};

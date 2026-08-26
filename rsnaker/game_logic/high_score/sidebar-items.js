@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["DB_FILE","MAX_SCORE_ENTRIES"],"fn":["default_snake_growth_factor"],"struct":["HighScore","HighScoreManager"]};

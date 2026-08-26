@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["fruits_manager","game_options","high_score","logger","playing_logic","playing_thread_manager","random_helper","state"]};

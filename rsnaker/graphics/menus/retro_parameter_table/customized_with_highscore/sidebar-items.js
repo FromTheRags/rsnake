@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["highs_get_footer_data","highs_get_headers","load_highs_info_in_table","setup_and_run_highs_table_parameters"]};

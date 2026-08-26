@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["ENTER_KEYS","FRUITS_KEYS","HELP_KEYS","HIGH_SCORE_KEYS","NEXT_KEYS","PARAMETERS_KEYS","PREVIOUS_KEYS","SWITCH_MENUS_OPTION","VELOCITY_KEYS"],"enum":["MainMenuInput","MenuFlow"],"fn":["controls_main_switch_menu","enter_menu_screen","flush_input_buffer","main_menu_event","run_submenu_and_reset"]};

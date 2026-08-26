@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CellValue","TableParameterAction"],"fn":["get_default_action_input"],"struct":["ActionInputs","FooterData","GenericMenu","RowData"],"trait":["ActionParameter"]};
