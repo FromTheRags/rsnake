@@ -49,8 +49,19 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
     - Search for "Terminal" in the search menu to launch it and **set as default** (to be able to run the snake by
       double-clicking the .exe) or run rsnake from the terminal with:
     - `cd "download path"` then `.\rsnake-x86_64-pc-windows-msvc.exe`
-- For Linux/macOS:
-    - `cd "download path" && ./rsnake-x86_64-unknown-linux-musl` (or `./rsnake-x86_64-apple-darwin` on macOS)
+- For Linux:
+    - `cd "download path" && chmod +x ./rsnake-x86_64-unknown-linux-musl && ./rsnake-x86_64-unknown-linux-musl`
+- For macOS[^darling]:
+    - `cd "download path" && chmod +x ./rsnake-x86_64-apple-darwin`
+    - If macOS blocks execution (Gatekeeper alert: *"cannot be opened because the developer cannot be verified"*),
+      delete the quarantine attribute:
+      ```bash
+      xattr -d com.apple.quarantine ./rsnake-x86_64-apple-darwin
+      ```
+    - Run the executable:
+      ```bash
+      ./rsnake-x86_64-apple-darwin
+      ```
 - For android:
     - Dedicated Android binary (`rsnake-aarch64-linux-android`) or static musl build
       (`rsnake-aarch64-unknown-linux-musl`) for emulated linux with proot.
@@ -124,11 +135,11 @@ source [Installation from source](#installation-from-source)
 - To install the game as a command:  
   `cargo install --path .`  
   And then run the game with: `rsnake`
-- See [Run option below for more details](#run-game-options).
+- See [Run Game options](#run-game-options) above for more details.
 
 ## Architecture
 
-Full details are available in [architecture.md](ARCHITECTURE.md).
+Full details are available in [ARCHITECTURE](ARCHITECTURE.md).
 
 - ### Logging Configuration
 
@@ -188,3 +199,7 @@ hot-reload handle, as well as log option overrides if set in game-preset file/me
   `ffmpeg -ss 00:00:01 -to 00:00:20 -i input.mp4 -vf "fps=10,scale=1400:-1:flags=lanczos" -loop 0 output.gif`  
   (well better than asciinema)  
   [![Contributors](https://img.shields.io/github/contributors/fromtherags/rsnake)](https://github.com/fromtherags/rsnake/graphs/contributors)
+
+[^darling]: To run and test macOS Mach-O binaries on Windows using WSL 2 and Darling without physical Apple hardware,
+see the guide in [README_DARLING_WSL2_RSNAKE.md](README_DARLING_WSL2_RSNAKE.md).
+
