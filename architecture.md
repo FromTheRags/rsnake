@@ -41,8 +41,8 @@ The project leverages the Rust ecosystem for efficiency and reliability:
 
 ### ⚙️ Logic & Orchestration
 
-- **[Clap](https://docs.rs/clap)**: Handles command-line argument parsing with a derive-based API. It validates user inputs
-  (like snake symbols) at startup and generates the help menu.
+- **[Clap](https://docs.rs/clap)**: Handles command-line argument parsing with a derive-based API. It validates user
+  inputs (like snake symbols) at startup and generates the help menu.
 - **[Serde](https://serde.rs/) & [TOML](https://github.com/toml-rs/toml)**: The backbone for data serialization.
     - **Configuration**: `GameOptions` uses Serde to load/save TOML presets. It supports attribute-based rename/alias
       (e.g., mapping CLI `snake-length` to internal `snake_length`) and skips non-persistent fields.
@@ -228,3 +228,18 @@ sequenceDiagram
         R ->> R: Draw to Terminal
     end
 ```
+
+## Git pre-commit hook
+
+Enable the versioned hook after cloning the repository:
+
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit # Linux/macOS
+```
+
+Each commit runs `cargo fmt --all` on all Rust targets in the workspace. The hook works with Git for Windows as well as
+Linux/macOS. Formatting changes are left in the working tree; the hook does not stage files automatically.  
+The hook first runs `cargo fmt --all -- --check` silently to determine whether formatting is needed, then runs
+`cargo fmt --all` and displays the corresponding success message. The preliminary check does not block the commit. The
+`rustfmt` component is included in `rust-toolchain.toml`.

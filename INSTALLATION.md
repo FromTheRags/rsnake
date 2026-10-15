@@ -21,21 +21,6 @@ echo "source '$HOME/.cargo/env'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## Git pre-commit hook
-
-Enable the versioned hook after cloning the repository:
-
-```bash
-git config core.hooksPath .githooks
-chmod +x .githooks/pre-commit # Linux/macOS
-```
-
-Each commit runs `cargo fmt --all` on all Rust targets in the workspace.
-The hook works with Git for Windows as well as Linux/macOS and performs no
-additional checks. Formatting changes are left in the working tree; the hook
-does not stage files automatically.
-The `rustfmt` component is included in `rust-toolchain.toml`.
-
 ## Test Your Setup
 
 - Verify the rust installation:

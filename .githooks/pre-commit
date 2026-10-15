@@ -1,2 +1,14 @@
 #!/bin/sh
-exec cargo fmt --all
+echo "Precommit working"
+if [ "${OS:-}" = "Windows_NT" ]; then
+    exec powershell.exe -NoProfile -NonInteractive -File .githooks/format.ps1
+else
+    needs_formatting=0
+    cargo fmt --all -- --check >/dev/null 2>&1 || needs_formatting=1
+    cargo fmt --all || exit $?
+    if [ "$needs_formatting" -eq 0 ]; then
+        echo "[pre-commit] Formatting complete: no changes needed."
+    else
+        echo "[pre-commit] Formatting complete: files were changed."
+    fi
+fi

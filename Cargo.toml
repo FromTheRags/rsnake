@@ -12,7 +12,8 @@ keywords = ["Ratatui", "TUI", "Snake", "Game", "retro"]
 categories = ["command-line-utilities"]
 rust-version = "1.95.0"
 
-#remember to updagit config core.hooksPath .githookste using: cargo update --verbose
+#remember to update using: cargo update --verbose
+#git config core.hooksPath .githooks
 #and Rust/clippy with: rustup update
 [dependencies]
 #Use for terminal rendering
