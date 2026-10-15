@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["SEGMENT_SPACING","SPEED_MOVING_SNAKE_SLEEP_TIME_MS","TOTAL_SEGMENTS"],"struct":["EdgeSnake"]};
