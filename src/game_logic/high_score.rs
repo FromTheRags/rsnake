@@ -1,8 +1,77 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sled::Db;
-use std::path::Path;
+use snafu::{ResultExt, Snafu, ensure};
+use std::path::{Path, PathBuf};
 use tracing::{debug, info};
+/// NB: `thiserror`crate does the same but not auto source mapping must `map_err(|e| ErrorKind: path, source:e)` everywhere
+/// For no trivial conversion and not produced line error location (in addition of line of log call),
+/// `ensure!`, `whatever!`, and Report macro.
+///
+/// To capture where an error is constructed, add a field annotated with
+/// `#[snafu(implicit)]` named `location: snafu::Location` to its variant.
+/// Snafu fills it at the context call site; include manually in the display `{location}` in
+/// to expose it in reports alongside the source chain.
+///
+/// Database failures retain their underlying source for tracing and diagnostics.
+#[derive(Debug, Snafu)]
+pub enum HighScoreError {
+    #[snafu(display("Could not open high-score database {}", path.display()))]
+    OpenDatabase { path: PathBuf, source: sled::Error },
+    #[snafu(display("Could not generate a score ID in {}", path.display()))]
+    GenerateId { path: PathBuf, source: sled::Error },
+    #[snafu(display("Could not read entry {index} from {}", path.display()))]
+    ReadEntry {
+        path: PathBuf,
+        index: usize,
+        source: sled::Error,
+    },
+    #[snafu(display("Could not save score {score} at key {key:02x?} in {}", path.display()
+    ))]
+    SaveScore {
+        path: PathBuf,
+        key: Vec<u8>,
+        score: u32,
+        source: sled::Error,
+    },
+    #[snafu(display("Could not trim {} to {limit} scores", path.display()))]
+    TrimDatabase {
+        path: PathBuf,
+        limit: usize,
+        source: sled::Error,
+    },
+    #[snafu(display("Could not flush high-score database {} to disk", path.display()
+    ))]
+    FlushDatabase { path: PathBuf, source: sled::Error },
+    #[snafu(display("Could not encode score {score} recorded at {date}"))]
+    Encode {
+        score: u32,
+        date: DateTime<Utc>,
+        source: toml::ser::Error,
+    },
+    #[snafu(display("Invalid UTF-8 at key {key:02x?} in {}: {data:02x?}", path.display()
+    ))]
+    Utf8 {
+        path: PathBuf,
+        key: Vec<u8>,
+        data: Vec<u8>,
+        source: std::str::Utf8Error,
+    },
+    #[snafu(display("Invalid TOML at key {key:02x?} in {}: {data:?}", path.display()
+    ))]
+    Decode {
+        path: PathBuf,
+        key: Vec<u8>,
+        data: String,
+        #[snafu(source(from(toml::de::Error, Box::new)))]
+        source: Box<toml::de::Error>,
+    },
+    #[snafu(display("Invalid score key {key:02x?} in {}: expected at least 4 bytes", path.display()
+    ))]
+    InvalidKey { path: PathBuf, key: Vec<u8> },
+}
+
+pub type Result<T> = std::result::Result<T, HighScoreError>;
 
 const MAX_SCORE_ENTRIES: usize = 10;
 const DB_FILE: &str = "high_scores.db";
@@ -17,6 +86,9 @@ pub struct HighScore {
     pub snake_growth_factor: u16,
     pub date: DateTime<Utc>,
     pub version: String,
+    // Keep the same sled ID across retries; it is not part of the stored score.
+    #[serde(skip)]
+    database_id: Option<u64>,
 }
 impl HighScore {
     #[must_use]
@@ -28,6 +100,7 @@ impl HighScore {
             snake_growth_factor,
             date: Utc::now(),
             version: env!("CARGO_PKG_VERSION").to_string(),
+            database_id: None,
         }
     }
 }
@@ -56,55 +129,71 @@ const fn default_snake_growth_factor() -> u16 {
 /// - NB: on other projects with others constrains postcard,rkyv,or borsh
 pub struct HighScoreManager {
     db: Db,
+    path: PathBuf,
 }
 
 impl HighScoreManager {
     /// # Errors
     ///
     /// If DB reads / writes issues
-    pub fn new() -> Result<Self, sled::Error> {
+    pub fn new() -> Result<Self> {
         let manager = HighScoreManager::new_with_custom_path(DB_FILE)?;
         Ok(manager)
     }
     /// # Errors
     ///
     /// If DB reads / writes issues
-    pub fn new_with_custom_path<P: AsRef<Path>>(path: P) -> Result<Self, sled::Error> {
-        let db = sled::open(path)?;
-        Ok(Self { db })
+    pub fn new_with_custom_path<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let path = path.as_ref().to_path_buf();
+        debug!(path = %path.display(), "Opening high-score database");
+        let db = sled::open(&path).with_context(|_| OpenDatabaseSnafu { path: path.clone() })?;
+        debug!(path = %path.display(), "High-score database opened");
+        Ok(Self { db, path })
     }
     /// Save the score in the DB and then shrink the DB to `MAX_SCORE_ENTRIES`
     /// if the score is not in the best `MAX_SCORE_ENTRIES`, it will not be inserted
     /// # Errors
     ///
     /// If DB reads / writes issues
-    pub fn save_score(
-        &self,
-        score: &HighScore,
-    ) -> Result<Option<usize>, Box<dyn std::error::Error>> {
-        let encoded = toml::to_string(&score)?;
+    pub fn save_score(&self, score: &mut HighScore) -> Result<Option<usize>> {
+        debug!(path = %self.path.display(), score = score.score, "Saving high score");
+        let encoded = toml::to_string(&score).context(EncodeSnafu {
+            score: score.score,
+            date: score.date,
+        })?;
         let rank = self.get_rank(score.score)?;
         //If the score to save is among the top ranks, we save
         if rank.is_some() {
             // 1. Calculate the score index key prefix (for sorting, so Big Endian)
             let score_key = (u32::MAX - score.score).to_be_bytes();
 
-            // 2. Get a globally unique, monotonically increasing ID from sled (u64)
-            // This replaces the timestamp for uniqueness.
-            let unique_id = self.db.generate_id()?;
+            // 2. Get a globally unique, monotonically increasing ID from sled (u64).
+            // Keep it on the pending score so a retry cannot create a duplicate.
+            let unique_id = if let Some(id) = score.database_id {
+                id
+            } else {
+                let id = self.db.generate_id().with_context(|_| GenerateIdSnafu {
+                    path: self.path.clone(),
+                })?;
+                score.database_id = Some(id);
+                id
+            };
             let unique_id_bytes = unique_id.to_be_bytes();
 
-            // 3. Combine them to form the final key
-            //NB: if not uniq will overwrite the previous value for this key as sled is like a hashMap<[u8],[u8]>
-            //And NOT a HashMap<[u8],Vec<[u8]>>
             let mut final_key = score_key.to_vec();
             final_key.extend_from_slice(&unique_id_bytes);
 
-            self.db.insert(final_key, encoded.as_bytes())?;
-            self.db.flush()?;
+            self.db
+                .insert(&final_key, encoded.as_bytes())
+                .with_context(|_| SaveScoreSnafu {
+                    path: self.path.clone(),
+                    key: final_key,
+                    score: score.score,
+                })?;
 
             //Now Shrink DB
             self.shrink_db()?;
+            info!(path = %self.path.display(), score = score.score, ?rank, "High score saved");
         }
         Ok(rank)
     }
@@ -113,70 +202,69 @@ impl HighScoreManager {
     /// # Errors
     ///
     /// If DB reads / writes issues
-    pub fn shrink_db(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut iter = self.db.iter();
-
-        // The iterator returns Result <(IVec, IVec)>, so we need to chain unwrap/error checks
-        // to get the key of the element to start the deletion range at.
-        let key_to_start_deleting_from = iter
-            .nth(MAX_SCORE_ENTRIES)
-            .map_or(Ok(None), |res| res.map(|(k, _)| Some(k)))?;
-
-        if let Some(start_key) = key_to_start_deleting_from {
-            // We iterate from 'start_key' up to the unbounded end of the tree.
-            let keys_to_delete = self.db.range(start_key..);
-
-            // 2.3. Build the deletion batch.
-            let mut batch = sled::Batch::default();
-
-            for key_value_result in keys_to_delete {
-                let (key, _) = key_value_result?;
+    pub fn shrink_db(&self) -> Result<()> {
+        debug!(path = %self.path.display(), limit = MAX_SCORE_ENTRIES, "Trimming high scores");
+        let mut removed = 0;
+        let mut batch = sled::Batch::default();
+        for (index, item) in self.db.iter().enumerate() {
+            let (key, _) = item.with_context(|_| ReadEntrySnafu {
+                path: self.path.clone(),
+                index,
+            })?;
+            if index >= MAX_SCORE_ENTRIES {
                 batch.remove(key);
+                removed += 1;
             }
-
-            // 2.4. Apply the batch.
-            self.db.apply_batch(batch)?;
         }
-        self.db.flush()?;
-        // If .skip(keep_count).next() returned None, there are 10 or fewer entries, so do nothing.
+        self.db
+            .apply_batch(batch)
+            .with_context(|_| TrimDatabaseSnafu {
+                path: self.path.clone(),
+                limit: MAX_SCORE_ENTRIES,
+            })?;
+        debug!(path = %self.path.display(), removed, "High scores trimmed; flushing database");
+        self.db.flush().with_context(|_| FlushDatabaseSnafu {
+            path: self.path.clone(),
+        })?;
+        debug!(path = %self.path.display(), "High-score database flushed");
         Ok(())
     }
 
-    #[must_use]
-    pub fn get_top_scores(&self) -> Vec<HighScore> {
-        let mut high_score_entries: Vec<HighScore> = Vec::new();
-        // We iterate on our sled DB, which is lexicography sorted, so we iterated by top score
-        // to bottom score :)
-        for item in self.db.iter() {
-            //For each item we gonna get utf8 value
-            let (_key, value) = item.expect("error in db while iterating to get score");
-            if let Ok(s_toml) = std::str::from_utf8(&value) {
-                //we get the toml back!
-                //Toml crate uses serde under the hood, so conversion to
-                // Highscore is possible thanks to Serde Deserialization macro applied on Highscore struct
-                // So we get a Highscore struct
-                if let Ok(high_score_entry) = toml::from_str(s_toml) {
-                    //We add it to our vec
-                    high_score_entries.push(high_score_entry);
-                    //get only the best score, limited to <limit> usually 10,
-                    // Normally not need because of shrinking but in case of
-                    if high_score_entries.len() >= MAX_SCORE_ENTRIES {
-                        break;
-                    }
-                }
-            }
-        }
-        high_score_entries
+    /// # Errors
+    /// Returns database read errors or invalid stored score data.
+    pub fn get_top_scores(&self) -> Result<Vec<HighScore>> {
+        debug!(path = %self.path.display(), "Loading top scores");
+        let scores = self
+            .db
+            .iter()
+            .take(MAX_SCORE_ENTRIES)
+            .enumerate()
+            .map(|(index, item)| {
+                let (key, value) = item.with_context(|_| ReadEntrySnafu {
+                    path: self.path.clone(),
+                    index,
+                })?;
+                let text = std::str::from_utf8(&value).with_context(|_| Utf8Snafu {
+                    path: self.path.clone(),
+                    key: key.to_vec(),
+                    data: value.to_vec(),
+                })?;
+                toml::from_str(text).with_context(|_| DecodeSnafu {
+                    path: self.path.clone(),
+                    key: key.to_vec(),
+                    data: text.to_owned(),
+                })
+            })
+            .collect::<Result<Vec<HighScore>>>()?;
+        debug!(path = %self.path.display(), count = scores.len(), "Top scores loaded");
+        Ok(scores)
     }
     /// Get the rank of the score submitted among the `MAX_SCORE_ENTRIES`
     /// Use the Sled lexicographic order to have it free
     /// # Errors
     ///
     /// If DB reads / writes issues
-    pub fn get_rank(
-        &self,
-        player_score_value: u32,
-    ) -> Result<Option<usize>, Box<dyn std::error::Error>> {
+    pub fn get_rank(&self, player_score_value: u32) -> Result<Option<usize>> {
         let mut rank = 1;
         let logic = |rank: &usize| {
             //Check we save only up to MAX_SCORE_ENTRIES score
@@ -196,10 +284,20 @@ impl HighScoreManager {
         };
         // We iterate on our sled DB, which is lexicography sorted, so we iterated by top score
         // to bottom score :)
-        for item in self.db.iter() {
-            let (key, _value) = item?;
+        for (index, item) in self.db.iter().enumerate() {
+            let (key, _value) = item.with_context(|_| ReadEntrySnafu {
+                path: self.path.clone(),
+                index,
+            })?;
             // Key 4 first bytes is the score saved as (u32::MAX - score)
-            let current_key_score_bytes: [u8; 4] = key[0..4].try_into()?;
+            ensure!(
+                key.len() >= 4,
+                InvalidKeySnafu {
+                    path: self.path.clone(),
+                    key: key.to_vec()
+                }
+            );
+            let current_key_score_bytes = [key[0], key[1], key[2], key[3]];
             let current_key_score = u32::MAX - u32::from_be_bytes(current_key_score_bytes);
             debug!(current_key_score, "Current key score with rank:{}", rank);
             // We found the ranking! (as we compare from top score to bottom)
@@ -219,16 +317,103 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
+    fn retry_after_partial_save_does_not_duplicate_score() {
+        let dir = tempdir().unwrap();
+        let mut score = HighScore::new("S".into(), 100, "Normal".into(), 1);
+        {
+            let manager = HighScoreManager::new_with_custom_path(dir.path()).unwrap();
+            // Simulate an insert that succeeded before a later operation failed.
+            let mut key = (u32::MAX - score.score).to_be_bytes().to_vec();
+            let id = manager.db.generate_id().unwrap();
+            score.database_id = Some(id);
+            key.extend_from_slice(&id.to_be_bytes());
+            manager
+                .db
+                .insert(key, toml::to_string(&score).unwrap().as_bytes())
+                .unwrap();
+            assert_eq!(manager.save_score(&mut score).unwrap(), Some(1));
+            assert_eq!(manager.save_score(&mut score).unwrap(), Some(1));
+        }
+        let manager = HighScoreManager::new_with_custom_path(dir.path()).unwrap();
+        assert_eq!(manager.get_top_scores().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn distinct_scores_use_monotonic_ids_even_with_identical_timestamps() {
+        let dir = tempdir().unwrap();
+        let manager = HighScoreManager::new_with_custom_path(dir.path()).unwrap();
+        let mut first = HighScore::new("S".into(), 100, "Normal".into(), 1);
+        let mut second = first.clone();
+        manager.save_score(&mut first).unwrap();
+        manager.save_score(&mut second).unwrap();
+        assert!(first.database_id.unwrap() < second.database_id.unwrap());
+        assert_eq!(manager.get_top_scores().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn invalid_data_returns_typed_errors() {
+        let dir = tempdir().unwrap();
+        let manager = HighScoreManager::new_with_custom_path(dir.path()).unwrap();
+        manager.db.insert(b"x", &[255]).unwrap();
+        assert!(matches!(
+            manager.get_rank(100),
+            Err(HighScoreError::InvalidKey { path, key, .. }) if path == dir.path() && key == b"x"
+        ));
+        assert!(matches!(
+            manager.get_top_scores(),
+            Err(HighScoreError::Utf8 { path, key, data, .. })
+                if path == dir.path() && key == b"x" && data == [255]
+        ));
+        manager.db.insert(b"x", b"invalid toml").unwrap();
+        assert!(matches!(
+            manager.get_top_scores(),
+            Err(HighScoreError::Decode { path, key, data, .. })
+                if path == dir.path() && key == b"x" && data == "invalid toml"
+        ));
+    }
+
+    #[test]
+    fn report_includes_context_and_underlying_cause() {
+        let dir = tempdir().unwrap();
+        let manager = HighScoreManager::new_with_custom_path(dir.path()).unwrap();
+        manager.db.insert(b"x", &[255]).unwrap();
+        let error = manager.get_top_scores().unwrap_err();
+        let cause = std::error::Error::source(&error).unwrap().to_string();
+        let report = snafu::Report::from_error(&error).to_string();
+        assert!(report.contains(&dir.path().display().to_string()));
+        assert!(report.contains("[78]"));
+        assert!(report.contains("[ff]"));
+        assert!(report.contains(&cause));
+    }
+
+    #[test]
+    fn open_can_be_retried_after_fixing_the_path() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("scores");
+        std::fs::write(&path, "not a directory").unwrap();
+        assert!(matches!(
+            HighScoreManager::new_with_custom_path(&path),
+            Err(HighScoreError::OpenDatabase { path: error_path, .. }) if error_path == path
+        ));
+        std::fs::remove_file(&path).unwrap();
+        let manager = HighScoreManager::new_with_custom_path(&path).unwrap();
+        manager
+            .save_score(&mut HighScore::new("S".into(), 100, "Normal".into(), 1))
+            .unwrap();
+        assert_eq!(manager.get_top_scores().unwrap().len(), 1);
+    }
+
+    #[test]
     fn test_high_score_save_and_load() {
         let dir = tempdir().unwrap();
         let db_path = dir.path().join("test_high_scores.db");
         let manager = HighScoreManager::new_with_custom_path(db_path).unwrap();
 
-        let score = HighScore::new("🐍•".to_string(), 100, "Normal".into(), 2);
+        let mut score = HighScore::new("🐍•".to_string(), 100, "Normal".into(), 2);
 
-        manager.save_score(&score).unwrap();
+        manager.save_score(&mut score).unwrap();
 
-        let top_scores = manager.get_top_scores();
+        let top_scores = manager.get_top_scores().unwrap();
         assert_eq!(top_scores.len(), 1);
         assert_eq!(top_scores[0].score, 100);
         assert_eq!(top_scores[0].symbols, "🐍•");
@@ -258,7 +443,12 @@ mod tests {
         let scores = vec![200, 50, 100];
         for s in scores {
             manager
-                .save_score(&HighScore::new("S".to_string(), s, "Normal 🐢".into(), 1))
+                .save_score(&mut HighScore::new(
+                    "S".to_string(),
+                    s,
+                    "Normal 🐢".into(),
+                    1,
+                ))
                 .unwrap();
         }
 

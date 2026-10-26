@@ -20,19 +20,27 @@ pub fn setup_and_run_highs_table_parameters(terminal: &mut DefaultTerminal) {
 fn load_highs_info_in_table() -> Vec<RowData> {
     let mut rows = vec![];
 
-    if let Ok(manager) = HighScoreManager::new() {
-        let high_scores = manager.get_top_scores();
-        for (index, score) in high_scores.into_iter().enumerate() {
-            rows.push(RowData::new(vec![
-                CellValue::new(format!("#{}", index + 1)),
-                CellValue::new(score.symbols),
-                CellValue::new(format!("{}", score.score)),
-                CellValue::new(score.speed),
-                CellValue::new(format!("x{}", score.snake_growth_factor)),
-                CellValue::new(score.date.format("%d/%m/%Y").to_string()),
-                CellValue::new(score.version),
-            ]));
+    let high_scores = match HighScoreManager::new().and_then(|db| db.get_top_scores()) {
+        Ok(scores) => scores,
+        Err(e) => {
+            tracing::error!(error = %snafu::Report::from_error(&e), "Could not load high scores");
+            return vec![RowData::new(vec![
+                CellValue::new("Load failed".into()),
+                CellValue::new(e.to_string()),
+                CellValue::new("Reopen to retry".into()),
+            ])];
         }
+    };
+    for (index, score) in high_scores.into_iter().enumerate() {
+        rows.push(RowData::new(vec![
+            CellValue::new(format!("#{}", index + 1)),
+            CellValue::new(score.symbols),
+            CellValue::new(format!("{}", score.score)),
+            CellValue::new(score.speed),
+            CellValue::new(format!("x{}", score.snake_growth_factor)),
+            CellValue::new(score.date.format("%d/%m/%Y").to_string()),
+            CellValue::new(score.version),
+        ]));
     }
 
     if rows.is_empty() {

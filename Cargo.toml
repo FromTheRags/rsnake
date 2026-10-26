@@ -35,6 +35,8 @@ toml = "1.1.2"
 unicode-segmentation = "1.13.0"
 #Use for high score database, and a little fun of not using a sql one
 sled = "0.34"
+#Use for custom error management, more option than thiserror
+snafu = "0.9"
 #Use for dates in high scores
 chrono = { version = "0.4", features = ["serde"] }
 #Logging

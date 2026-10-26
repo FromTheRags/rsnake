@@ -85,6 +85,7 @@ pub fn game_over_paragraph(
     selection: &GameOverMenu,
     score: u32,
     rank: Option<usize>,
+    score_save_error: Option<&str>,
 ) {
     let mut lines = vec![];
     //Get the GAME OVER text in red
@@ -101,6 +102,14 @@ pub fn game_over_paragraph(
             ratatui::style::Style::default().fg(Color::Yellow),
         ),
     ]));
+    if let Some(error) = score_save_error {
+        lines.push(Line::from(format!("Score save failed: {error}")).style(Color::Red));
+        lines.push(Line::from(
+            "Check database access / free disk space, then press S to retry.",
+        ));
+        lines.push(Line::from("[ Retry save (S) ]").style(Color::Yellow));
+        lines.push(Line::from("Leaving this screen discards the pending save."));
+    }
     // if among the top 10, display the ranking
     if let Some(r) = rank {
         lines.push(Line::from(vec![
@@ -138,4 +147,32 @@ pub fn game_over_paragraph(
     //NB: no red everywhere on the block as with "//.style(ratatui::style::Style::default().fg(Color::Red)),"
     //Because otherwise the button's color of the game over screen will be lost
     frame.render_widget(ratatui::widgets::Block::default(), frame.area());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::{Terminal, backend::TestBackend};
+
+    #[test]
+    fn game_over_shows_save_error_and_retry_only_on_failure() {
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        for error in [Some("Could not open high scores"), None] {
+            terminal
+                .draw(|frame| {
+                    game_over_paragraph(frame, &GameOverMenu::Restart, 42, None, error);
+                })
+                .unwrap();
+            let text: String = terminal
+                .backend()
+                .buffer()
+                .content()
+                .iter()
+                .map(ratatui::buffer::Cell::symbol)
+                .collect();
+            assert!(text.contains("Score: 42"));
+            assert_eq!(text.contains("Could not open high scores"), error.is_some());
+            assert_eq!(text.contains("Retry save (S)"), error.is_some());
+        }
+    }
 }

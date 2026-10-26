@@ -68,7 +68,10 @@ pub struct GameState {
     pub score: u32,          // Current player score
     pub status: GameStatus,  // Current game status
     pub rank: Option<usize>, // Rank in high scores if game over
-    life_ini: u16,           // Initial life count (used for reset)
+    pub score_save_error: Option<String>,
+    // Set only by the retry shortcut after a failed save, consumed by game-over logic.
+    pub retry_score_save: bool,
+    life_ini: u16, // Initial life count (used for reset)
 }
 
 impl GameState {
@@ -86,6 +89,8 @@ impl GameState {
             score: 0,
             status: GameStatus::Playing,
             rank: None,
+            score_save_error: None,
+            retry_score_save: false,
             life_ini: life,
         }
     }
@@ -95,6 +100,8 @@ impl GameState {
         self.score = 0;
         self.status = GameStatus::Playing;
         self.rank = None;
+        self.score_save_error = None;
+        self.retry_score_save = false;
         self.life = self.life_ini;
     }
 }

@@ -121,6 +121,7 @@ pub fn playing_render_loop<'a: 'b, 'b>(
                         &mut fruits_manager_write,
                         state_guard.score,
                         state_guard.rank,
+                        state_guard.score_save_error.as_deref(),
                         frame,
                     );
                 }
@@ -148,6 +149,7 @@ fn game_state_render(
     fruits_manager: &mut FruitsManager,
     score: u32,
     rank: Option<usize>,
+    score_save_error: Option<&str>,
     frame: &mut Frame,
 ) -> bool {
     let mut rendering_break = false;
@@ -160,7 +162,7 @@ fn game_state_render(
         }
         GameStatus::GameOver(selection) => {
             fruits_manager.set_timer_paused(true);
-            menus::messages::game_over_paragraph(frame, selection, score, rank);
+            menus::messages::game_over_paragraph(frame, selection, score, rank, score_save_error);
         }
         GameStatus::ByeBye => {
             menus::messages::byebye_paragraph(frame);

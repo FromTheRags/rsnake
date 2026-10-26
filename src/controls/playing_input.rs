@@ -16,6 +16,7 @@ pub const PAUSE_KEYS: [KeyCode; 4] = [
     KeyCode::Char(' '),
     KeyCode::Char('-'),
 ];
+pub const RETRY_SCORE_KEYS: [KeyCode; 2] = [KeyCode::Char('s'), KeyCode::Char('S')];
 pub const RESET_KEYS: [KeyCode; 2] = [KeyCode::Char('r'), KeyCode::Char('R')];
 /// Returns whether a key event has no active modifier keys.
 ///
@@ -42,7 +43,9 @@ pub fn playing_input_loop(direction: &Arc<RwLock<Direction>>, gs: &Arc<RwLock<Ga
             let mut gs_guard = gs.write().unwrap();
             // Handle GameOver navigation separately
             if let GameStatus::GameOver(selection) = gs_guard.status {
-                if NEXT_KEYS.contains(&key.code) {
+                if RETRY_SCORE_KEYS.contains(&key.code) && gs_guard.score_save_error.is_some() {
+                    gs_guard.retry_score_save = true;
+                } else if NEXT_KEYS.contains(&key.code) {
                     gs_guard.status = GameStatus::GameOver(selection.next());
                 } else if PREVIOUS_KEYS.contains(&key.code) {
                     gs_guard.status = GameStatus::GameOver(selection.previous());
