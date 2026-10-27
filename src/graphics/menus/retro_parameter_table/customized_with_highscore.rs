@@ -1,4 +1,5 @@
 use crate::game_logic::high_score::HighScoreManager;
+use crate::game_logic::logger::error_formatting::format_error_chain;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
 };
@@ -23,7 +24,7 @@ fn load_highs_info_in_table() -> Vec<RowData> {
     let high_scores = match HighScoreManager::new().and_then(|db| db.get_top_scores()) {
         Ok(scores) => scores,
         Err(e) => {
-            tracing::error!(error = %snafu::Report::from_error(&e), "Could not load high scores");
+            tracing::error!(error = %format_error_chain(&e), "Could not load high scores");
             return vec![RowData::new(vec![
                 CellValue::new("Load failed".into()),
                 CellValue::new(e.to_string()),
