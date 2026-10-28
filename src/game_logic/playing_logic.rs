@@ -2,7 +2,6 @@ use crate::controls::direction::Direction;
 use crate::controls::speed::Speed;
 use crate::game_logic::fruits_manager::FruitsManager;
 use crate::game_logic::high_score::{HighScore, HighScoreManager};
-use crate::game_logic::logger::error_formatting::format_error_chain;
 use crate::game_logic::state::{GameOverMenu, GameState, GameStatus};
 use crate::graphics::sprites::fruit::Fruit;
 use crate::graphics::sprites::map::Map;
@@ -163,7 +162,13 @@ fn save_pending_score(gs: &Arc<RwLock<GameState>>, pending_score: &mut Option<Hi
                 *pending_score = None;
             }
             Err(error) => {
-                error!(error = %format_error_chain(&error), "Could not save game score");
+                error!(
+                    error = %error,
+                    score = score.score,
+                    speed = %score.speed,
+                    growth_factor = score.snake_growth_factor,
+                    "End-of-game score remains pending; player can retry saving"
+                );
                 state.score_save_error = Some(error.to_string());
             }
         }

@@ -1,9 +1,9 @@
 use crate::game_logic::high_score::HighScoreManager;
-use crate::game_logic::logger::error_formatting::format_error_chain;
 use crate::graphics::menus::retro_parameter_table::generic_logic::{
     CellValue, FooterData, GenericMenu, RowData, get_default_action_input,
 };
 use ratatui::DefaultTerminal;
+use tracing::error;
 
 /// Sets up and runs the high-score table menu
 pub fn setup_and_run_highs_table_parameters(terminal: &mut DefaultTerminal) {
@@ -24,7 +24,7 @@ fn load_highs_info_in_table() -> Vec<RowData> {
     let high_scores = match HighScoreManager::new().and_then(|db| db.get_top_scores()) {
         Ok(scores) => scores,
         Err(e) => {
-            tracing::error!(error = %format_error_chain(&e), "Could not load high scores");
+            error!(error = %e, "High-score menu cannot display scores; reopen the menu to retry");
             return vec![RowData::new(vec![
                 CellValue::new("Load failed".into()),
                 CellValue::new(e.to_string()),

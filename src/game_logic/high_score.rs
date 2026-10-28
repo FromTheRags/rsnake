@@ -1,148 +1,34 @@
-use crate::game_logic::logger::error_formatting::LocatedError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sled::Db;
-use snafu::{Location, ResultExt, Snafu, ensure};
 use std::path::{Path, PathBuf};
-use tracing::{debug, info};
-// Equivalent contextual error with thiserror (illustration only; no dependency added):
-//
-// #[derive(Debug, thiserror::Error)]
-// enum DbError {
-//     #[error("Could not open database {}", path.display())]
-//     Open {
-//         path: PathBuf,
-//         source: sled::Error,
-//         location: &'static std::panic::Location<'static>,
-//     },
-// }
-// fn open(path: &Path) -> std::result::Result<Db, DbError> {
-//     sled::open(path).map_err(|source| DbError::Open {
-//         path: path.to_path_buf(),
-//         source,
-//         location: std::panic::Location::caller(),
-//     })
-// }
-//
-// thiserror supports #[from] for source-only variants, but path/location context
-// needs explicit construction here: https://docs.rs/thiserror/latest/thiserror/.
-// Snafu's with_context builds the variant and #[snafu(implicit)] captures the
-// file/line/column at that context call, rather than the later logging call.
-// Location references static metadata: no stack walk or symbol resolution.
-// Together with the source chain, it pinpoints our failing DB operation with
-// less overhead and noise than a backtrace for these expected I/O failures.
-// A backtrace remains useful when the complete runtime call path matters;
-// location only identifies where we attached context, not internals of sled.
-// Display contains only the message. format_error_chain reads location() from
-// each LocatedError in the source chain and prints it alongside the message.
-// Third-party sources without location metadata retain their message.
-//
-/// Database failures retain their underlying source for tracing and diagnostics.
-#[derive(Debug, Snafu)]
-pub enum HighScoreError {
-    #[snafu(display("Could not open high-score database {}", path.display()))]
-    OpenDatabase {
-        path: PathBuf,
-        source: sled::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Could not generate a score ID in {}", path.display()))]
-    GenerateId {
-        path: PathBuf,
-        source: sled::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Could not read entry {index} from {}", path.display()))]
-    ReadEntry {
-        path: PathBuf,
-        index: usize,
-        source: sled::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Could not save score {score} at key {key:02x?} in {}", path.display()
-    ))]
-    SaveScore {
-        path: PathBuf,
-        key: Vec<u8>,
-        score: u32,
-        source: sled::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Could not trim {} to {limit} scores", path.display()))]
-    TrimDatabase {
-        path: PathBuf,
-        limit: usize,
-        source: sled::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Could not flush high-score database {} to disk", path.display()
-    ))]
-    FlushDatabase {
-        path: PathBuf,
-        source: sled::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Could not encode score {score} recorded at {date}"))]
-    Encode {
-        score: u32,
-        date: DateTime<Utc>,
-        source: toml::ser::Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Invalid UTF-8 at key {key:02x?} in {}: {data:02x?}", path.display()
-    ))]
-    Utf8 {
-        path: PathBuf,
-        key: Vec<u8>,
-        data: Vec<u8>,
-        source: std::str::Utf8Error,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Invalid TOML at key {key:02x?} in {}: {data:?}", path.display()
-    ))]
-    Decode {
-        path: PathBuf,
-        key: Vec<u8>,
-        data: String,
-        #[snafu(source(from(toml::de::Error, Box::new)))]
-        source: Box<toml::de::Error>,
-        #[snafu(implicit)]
-        location: Location,
-    },
-    #[snafu(display("Invalid score key {key:02x?} in {}: expected at least 4 bytes", path.display()
-    ))]
-    InvalidKey {
-        path: PathBuf,
-        key: Vec<u8>,
-        #[snafu(implicit)]
-        location: Location,
-    },
-}
+use thiserror::Error;
+use tracing::{debug, error, info};
 
-impl LocatedError for HighScoreError {
-    fn location(&self) -> Option<Location> {
-        Some(match self {
-            Self::OpenDatabase { location, .. }
-            | Self::GenerateId { location, .. }
-            | Self::ReadEntry { location, .. }
-            | Self::SaveScore { location, .. }
-            | Self::TrimDatabase { location, .. }
-            | Self::FlushDatabase { location, .. }
-            | Self::Encode { location, .. }
-            | Self::Utf8 { location, .. }
-            | Self::Decode { location, .. }
-            | Self::InvalidKey { location, .. } => *location,
-        })
-    }
-    // All causes here are external errors: the formatter follows Error::source().
+/// Each conversion logs its source error; the final caller logs this error
+/// with its own context. No source chain or location is then needed, as log does the trace for us.
+#[derive(Debug, Error)]
+pub enum HighScoreError {
+    #[error("Could not open high-score database {}", path.display())]
+    OpenDatabase { path: PathBuf },
+    #[error("Could not generate a score ID")]
+    GenerateId,
+    #[error("Could not read a high-score entry")]
+    ReadEntry,
+    #[error("Could not save score")]
+    SaveScore,
+    #[error("Could not trim high-score database")]
+    TrimDatabase,
+    #[error("Could not flush high-score database to disk")]
+    FlushDatabase,
+    #[error("Could not encode score")]
+    Encode,
+    #[error("Invalid UTF-8 in stored score")]
+    Utf8,
+    #[error("Invalid TOML in stored score")]
+    Decode,
+    #[error("Invalid score key")]
+    InvalidKey,
 }
 
 pub type Result<T> = std::result::Result<T, HighScoreError>;
@@ -220,7 +106,10 @@ impl HighScoreManager {
     pub fn new_with_custom_path<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref().to_path_buf();
         debug!(path = %path.display(), "Opening high-score database");
-        let db = sled::open(&path).with_context(|_| OpenDatabaseSnafu { path: path.clone() })?;
+        let db = sled::open(&path).map_err(|source| {
+            error!(error = %source);
+            HighScoreError::OpenDatabase { path: path.clone() }
+        })?;
         debug!(path = %path.display(), "High-score database opened");
         Ok(Self { db, path })
     }
@@ -231,9 +120,9 @@ impl HighScoreManager {
     /// If DB reads / writes issues
     pub fn save_score(&self, score: &mut HighScore) -> Result<Option<usize>> {
         debug!(path = %self.path.display(), score = score.score, "Saving high score");
-        let encoded = toml::to_string(&score).context(EncodeSnafu {
-            score: score.score,
-            date: score.date,
+        let encoded = toml::to_string(&score).map_err(|source| {
+            error!(score = score.score, date = %score.date, error = %source);
+            HighScoreError::Encode
         })?;
         let rank = self.get_rank(score.score)?;
         //If the score to save is among the top ranks, we save
@@ -246,8 +135,9 @@ impl HighScoreManager {
             let unique_id = if let Some(id) = score.database_id {
                 id
             } else {
-                let id = self.db.generate_id().with_context(|_| GenerateIdSnafu {
-                    path: self.path.clone(),
+                let id = self.db.generate_id().map_err(|source| {
+                    error!(path = %self.path.display(), error = %source);
+                    HighScoreError::GenerateId
                 })?;
                 score.database_id = Some(id);
                 id
@@ -259,10 +149,9 @@ impl HighScoreManager {
 
             self.db
                 .insert(&final_key, encoded.as_bytes())
-                .with_context(|_| SaveScoreSnafu {
-                    path: self.path.clone(),
-                    key: final_key,
-                    score: score.score,
+                .map_err(|source| {
+                    error!(path = %self.path.display(), key = ?final_key, score = score.score, error = %source);
+                    HighScoreError::SaveScore
                 })?;
 
             //Now Shrink DB
@@ -281,24 +170,23 @@ impl HighScoreManager {
         let mut removed = 0;
         let mut batch = sled::Batch::default();
         for (index, item) in self.db.iter().enumerate() {
-            let (key, _) = item.with_context(|_| ReadEntrySnafu {
-                path: self.path.clone(),
-                index,
+            let (key, _) = item.map_err(|source| {
+                error!(path = %self.path.display(), index, error = %source);
+                HighScoreError::ReadEntry
             })?;
             if index >= MAX_SCORE_ENTRIES {
                 batch.remove(key);
                 removed += 1;
             }
         }
-        self.db
-            .apply_batch(batch)
-            .with_context(|_| TrimDatabaseSnafu {
-                path: self.path.clone(),
-                limit: MAX_SCORE_ENTRIES,
-            })?;
+        self.db.apply_batch(batch).map_err(|source| {
+            error!(path = %self.path.display(), limit = MAX_SCORE_ENTRIES, error = %source);
+            HighScoreError::TrimDatabase
+        })?;
         debug!(path = %self.path.display(), removed, "High scores trimmed; flushing database");
-        self.db.flush().with_context(|_| FlushDatabaseSnafu {
-            path: self.path.clone(),
+        self.db.flush().map_err(|source| {
+            error!(path = %self.path.display(), error = %source);
+            HighScoreError::FlushDatabase
         })?;
         debug!(path = %self.path.display(), "High-score database flushed");
         Ok(())
@@ -314,19 +202,17 @@ impl HighScoreManager {
             .take(MAX_SCORE_ENTRIES)
             .enumerate()
             .map(|(index, item)| {
-                let (key, value) = item.with_context(|_| ReadEntrySnafu {
-                    path: self.path.clone(),
-                    index,
+                let (key, value) = item.map_err(|source| {
+                    error!(path = %self.path.display(), index, error = %source);
+                    HighScoreError::ReadEntry
                 })?;
-                let text = std::str::from_utf8(&value).with_context(|_| Utf8Snafu {
-                    path: self.path.clone(),
-                    key: key.to_vec(),
-                    data: value.to_vec(),
+                let text = std::str::from_utf8(&value).map_err(|source| {
+                    error!(path = %self.path.display(), ?key, data = ?value, error = %source);
+                    HighScoreError::Utf8
                 })?;
-                toml::from_str(text).with_context(|_| DecodeSnafu {
-                    path: self.path.clone(),
-                    key: key.to_vec(),
-                    data: text.to_owned(),
+                toml::from_str(text).map_err(|source| {
+                    error!(path = %self.path.display(), ?key, data = ?text, error = %source);
+                    HighScoreError::Decode
                 })
             })
             .collect::<Result<Vec<HighScore>>>()?;
@@ -359,18 +245,14 @@ impl HighScoreManager {
         // We iterate on our sled DB, which is lexicography sorted, so we iterated by top score
         // to bottom score :)
         for (index, item) in self.db.iter().enumerate() {
-            let (key, _value) = item.with_context(|_| ReadEntrySnafu {
-                path: self.path.clone(),
-                index,
+            let (key, _value) = item.map_err(|source| {
+                error!(path = %self.path.display(), index, error = %source);
+                HighScoreError::ReadEntry
             })?;
             // Key 4 first bytes is the score saved as (u32::MAX - score)
-            ensure!(
-                key.len() >= 4,
-                InvalidKeySnafu {
-                    path: self.path.clone(),
-                    key: key.to_vec()
-                }
-            );
+            if key.len() < 4 {
+                return Err(HighScoreError::InvalidKey);
+            }
             let current_key_score_bytes = [key[0], key[1], key[2], key[3]];
             let current_key_score = u32::MAX - u32::from_be_bytes(current_key_score_bytes);
             debug!(current_key_score, "Current key score with rank:{}", rank);
@@ -389,6 +271,61 @@ impl HighScoreManager {
 mod tests {
     use super::*;
     use tempfile::tempdir;
+
+    #[test]
+    fn sources_are_logged_only_at_conversion() {
+        use std::io::{Read, Seek, SeekFrom};
+
+        let dir = tempdir().unwrap();
+        let blocked_path = dir.path().join("not_a_directory");
+        std::fs::write(&blocked_path, "blocked").unwrap();
+        let manager = HighScoreManager::new_with_custom_path(dir.path().join("scores")).unwrap();
+        manager.db.insert(b"x", &[255]).unwrap();
+        let mut log_file = tempfile::tempfile().unwrap();
+        let writer = log_file.try_clone().unwrap();
+        let subscriber = tracing_subscriber::fmt()
+            .without_time()
+            .with_ansi(false)
+            .with_max_level(tracing::Level::ERROR)
+            .with_writer(move || writer.try_clone().unwrap())
+            .finish();
+
+        tracing::subscriber::with_default(subscriber, || {
+            let Err(error) = HighScoreManager::new_with_custom_path(&blocked_path) else {
+                panic!("expected an open error");
+            };
+            assert!(
+                matches!(&error, HighScoreError::OpenDatabase { path } if path == &blocked_path)
+            );
+            assert!(std::error::Error::source(&error).is_none());
+            // Simulate final handling: only this level logs the current error.
+            error!(error = %error, "High-score menu unavailable");
+            // Validation has no source to log; save_score only propagates it.
+            let error = manager
+                .save_score(&mut HighScore::new("S".into(), 100, "Normal".into(), 1))
+                .unwrap_err();
+            assert!(matches!(error, HighScoreError::InvalidKey));
+            let error = manager.get_top_scores().unwrap_err();
+            assert!(matches!(error, HighScoreError::Utf8));
+            assert!(std::error::Error::source(&error).is_none());
+        });
+
+        log_file.seek(SeekFrom::Start(0)).unwrap();
+        let mut log = String::new();
+        log_file.read_to_string(&mut log).unwrap();
+        assert_eq!(log.matches("ERROR").count(), 3, "{log}");
+        assert_eq!(
+            log.matches("Could not open high-score database").count(),
+            1,
+            "{log}"
+        );
+        assert!(!log.contains("Invalid score key"));
+        assert!(!log.contains("Invalid UTF-8 in stored score"));
+        assert!(log.contains(&blocked_path.display().to_string()));
+        assert!(log.contains("data=[255]"));
+        assert!(log.contains("invalid utf-8 sequence"));
+        assert!(!log.contains("Caused by:"));
+    }
 
     #[test]
     fn retry_after_partial_save_does_not_duplicate_score() {
@@ -431,46 +368,17 @@ mod tests {
         manager.db.insert(b"x", &[255]).unwrap();
         assert!(matches!(
             manager.get_rank(100),
-            Err(HighScoreError::InvalidKey { path, key, .. }) if path == dir.path() && key == b"x"
+            Err(HighScoreError::InvalidKey)
         ));
         assert!(matches!(
             manager.get_top_scores(),
-            Err(HighScoreError::Utf8 { path, key, data, .. })
-                if path == dir.path() && key == b"x" && data == [255]
+            Err(HighScoreError::Utf8)
         ));
         manager.db.insert(b"x", b"invalid toml").unwrap();
         assert!(matches!(
             manager.get_top_scores(),
-            Err(HighScoreError::Decode { path, key, data, .. })
-                if path == dir.path() && key == b"x" && data == "invalid toml"
+            Err(HighScoreError::Decode)
         ));
-    }
-
-    #[test]
-    fn report_includes_context_and_underlying_cause() {
-        let dir = tempdir().unwrap();
-        let manager = HighScoreManager::new_with_custom_path(dir.path()).unwrap();
-        manager.db.insert(b"x", &[255]).unwrap();
-        let error = manager.get_top_scores().unwrap_err();
-        let cause = std::error::Error::source(&error).unwrap().to_string();
-        let report = crate::game_logic::logger::error_formatting::format_error_chain(&error);
-        let HighScoreError::Utf8 { location, .. } = &error else {
-            panic!("expected UTF-8 error");
-        };
-        assert_eq!(location.file(), file!());
-        assert!(!error.to_string().contains(&location.to_string()));
-        assert!(
-            report
-                .lines()
-                .next()
-                .unwrap()
-                .contains(&location.to_string())
-        );
-        assert_eq!(report.lines().count(), 2);
-        assert!(report.contains(&dir.path().display().to_string()));
-        assert!(report.contains("[78]"));
-        assert!(report.contains("[ff]"));
-        assert!(report.contains(&cause));
     }
 
     #[test]
@@ -480,7 +388,7 @@ mod tests {
         std::fs::write(&path, "not a directory").unwrap();
         assert!(matches!(
             HighScoreManager::new_with_custom_path(&path),
-            Err(HighScoreError::OpenDatabase { path: error_path, .. }) if error_path == path
+            Err(HighScoreError::OpenDatabase { path: error_path }) if error_path == path
         ));
         std::fs::remove_file(&path).unwrap();
         let manager = HighScoreManager::new_with_custom_path(&path).unwrap();

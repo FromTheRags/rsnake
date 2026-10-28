@@ -42,5 +42,4 @@
 //!     // The span automatically closes here when `_enter` is dropped.
 //! ```
 //!
-pub mod error_formatting;
 pub mod log_configuration;
