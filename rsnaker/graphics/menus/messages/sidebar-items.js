@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CONTROLS_TABLE","FAREWELL_TEXT","GAME_OVER_TEXT","MENU_TEXT","PAUSE_TEXT","RESTART_TEXT","SNAKE_LOGO"],"fn":["byebye_paragraph","game_over_paragraph","menu_paragraph","pause_paragraph","restart_paragraph"]};

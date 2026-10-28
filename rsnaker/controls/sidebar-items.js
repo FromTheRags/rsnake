@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["direction","main_menu","playing_input","speed"]};
