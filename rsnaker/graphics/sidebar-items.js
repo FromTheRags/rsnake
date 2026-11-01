@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["graphic_block","menus","playing_render","sprites"]};

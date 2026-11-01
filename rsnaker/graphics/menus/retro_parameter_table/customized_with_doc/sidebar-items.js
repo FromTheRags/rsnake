@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["doc_get_footer_data","doc_get_headers","load_doc_info_in_table","setup_and_run_doc_table_parameters"]};

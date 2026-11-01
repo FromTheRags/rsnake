@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["calculate_max_column_widths","calculate_sum_inner_row_heights","constraint_length_from_widths","frame_vertically_centered_rect","render_full_centered_paragraph"]};

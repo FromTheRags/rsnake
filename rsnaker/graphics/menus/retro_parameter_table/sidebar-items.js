@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["customized_with_doc","customized_with_edit","customized_with_fruits","customized_with_highscore","customized_with_speed","generic_logic","generic_style"]};
