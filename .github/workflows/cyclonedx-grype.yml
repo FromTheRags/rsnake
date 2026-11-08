@@ -1,0 +1,53 @@
+name: CycloneDX and Grype
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Re-scan unchanged dependencies as new CVEs are published.
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: cyclonedx-grype-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sbom-scan:
+    name: Generate SBOM and scan dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust (version pinned via rust-toolchain.toml)
+        uses: actions-rust-lang/setup-rust-toolchain@v2
+
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --locked
+
+      - name: Generate CycloneDX SBOM
+        run: cargo cyclonedx --format json --output-file sbom.json
+
+      - name: Scan SBOM with Grype
+        uses: anchore/scan-action@v7
+        with:
+          sbom: sbom.json
+          fail-build: true
+          severity-cutoff: medium
+          by-cve: true
+          output-format: table
+
+      - name: Upload CycloneDX SBOM
+        if: always() && hashFiles('sbom.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyclonedx-sbom
+          path: sbom.json
+          if-no-files-found: error
+          retention-days: 30
