@@ -3,9 +3,16 @@ echo "Precommit working"
 if [ "${OS:-}" = "Windows_NT" ]; then
     exec powershell.exe -NoProfile -NonInteractive -File .githooks/format.ps1
 else
+    staged_rust_files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.rs') || exit $?
     needs_formatting=0
     cargo fmt --all -- --check >/dev/null 2>&1 || needs_formatting=1
     cargo fmt --all || exit $?
+    # Re-stage only Rust files that were already part of the commit.
+    if [ -n "$staged_rust_files" ]; then
+        printf '%s\n' "$staged_rust_files" | while IFS= read -r file; do
+            [ -z "$file" ] || git add -- "$file" || exit $?
+        done || exit $?
+    fi
     if [ "$needs_formatting" -eq 0 ]; then
         echo "[pre-commit] Formatting complete: no changes needed."
     else

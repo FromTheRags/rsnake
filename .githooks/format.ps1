@@ -1,9 +1,18 @@
 $ErrorActionPreference = 'Stop'
 
+$stagedRustFiles = git diff --cached --name-only --diff-filter=ACMR -- '*.rs'
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 cargo fmt --all -- --check *> $null
 $needsFormatting = $LASTEXITCODE -ne 0
 cargo fmt --all
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Re-stage only Rust files that were already part of the commit.
+if ($stagedRustFiles) {
+    git add -- $stagedRustFiles
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 
 if (-not $needsFormatting) {
     Write-Output '[pre-commit] Formatting complete: no changes needed.'

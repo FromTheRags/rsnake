@@ -21,8 +21,11 @@ pub enum HighScoreError {
     TrimDatabase,
     #[error("Could not flush high-score database to disk")]
     FlushDatabase,
-    #[error("Could not encode score")]
-    Encode,
+    #[error("Could not encode score: {}", source)]
+    Encode {
+        #[source]
+        source: toml::ser::Error,
+    },
     #[error("Invalid UTF-8 in stored score")]
     Utf8,
     #[error("Invalid TOML in stored score")]
@@ -121,8 +124,9 @@ impl HighScoreManager {
     pub fn save_score(&self, score: &mut HighScore) -> Result<Option<usize>> {
         debug!(path = %self.path.display(), score = score.score, "Saving high score");
         let encoded = toml::to_string(&score).map_err(|source| {
-            error!(score = score.score, date = %score.date, error = %source);
-            HighScoreError::Encode
+            //if the error log level is hard to determine locally, we can forward the underlying error
+            // and let the outer scope decide which log level to use
+            HighScoreError::Encode { source }
         })?;
         let rank = self.get_rank(score.score)?;
         //If the score to save is among the top ranks, we save
@@ -454,5 +458,26 @@ mod tests {
         assert_eq!(manager.get_rank(75).unwrap(), Some(3));
         assert_eq!(manager.get_rank(50).unwrap(), Some(3));
         assert_eq!(manager.get_rank(10).unwrap(), Some(4));
+    }
+
+    #[test]
+    fn test_encode_error_display_includes_source() {
+        struct FailingSerialize;
+        impl serde::Serialize for FailingSerialize {
+            fn serialize<S: serde::Serializer>(
+                &self,
+                _serializer: S,
+            ) -> std::result::Result<S::Ok, S::Error> {
+                use serde::ser::Error;
+                Err(S::Error::custom("forced serialization failure"))
+            }
+        }
+
+        let err = toml::to_string(&FailingSerialize).unwrap_err();
+        let high_score_err = HighScoreError::Encode { source: err };
+        let display = format!("{high_score_err}");
+        assert!(display.starts_with("Could not encode score: "));
+        assert!(display.contains("forced serialization failure"));
+        assert!(std::error::Error::source(&high_score_err).is_some());
     }
 }
