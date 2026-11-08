@@ -55,11 +55,11 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
             speed,
             serpent: Arc::new(RwLock::new(serpent)),
             direction: Arc::new(RwLock::new(Direction::Right)),
-            carte: arc_carte.clone(),
+            carte: Arc::clone(&arc_carte),
             state: Arc::new(RwLock::new(GameState::new(life))),
             fruits_manager: Arc::new(RwLock::new(FruitsManager::new(
                 fruits_nb,
-                arc_carte.clone(),
+                Arc::clone(&arc_carte),
                 options.fruit_timer,
                 f32::from(options.fruit_duration_seconds),
             ))),
@@ -118,6 +118,9 @@ impl<'a, 'b, 'c, 't> Game<'a, 'b, 'c, 't> {
         info!("Good bye, come back soon, snaker is waiting for you 🐍");
     }
     /// Start the main Game threads: input, rendering, logic
+    ///
+    /// # Panics
+    /// Panics if any of the game scoped threads fails to spawn.
     pub fn start(&mut self) {
         debug!("Starting game threads");
         // Be careful: not all threads on the same structure and do not keep them too much

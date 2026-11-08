@@ -1,7 +1,4 @@
-#![forbid(unsafe_code)]
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![allow(clippy::missing_panics_doc)]
+// Lint configuration (unsafe_code forbid and Clippy groups/lints) is centralized in Cargo.toml ([lints]).
 // Documentation for all Clippy lints: https://github.com/rust-lang/rust-clippy/
 //! # Snake Game using Ratatui
 //!

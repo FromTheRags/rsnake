@@ -111,6 +111,8 @@ fn enter_menu_screen(
     MenuFlow::StayOnMainScreen
 }
 
+/// # Panics
+/// Panics if polling terminal events fails.
 pub fn controls_main_switch_menu(
     terminal: &mut DefaultTerminal,
     options: &mut GameOptions,

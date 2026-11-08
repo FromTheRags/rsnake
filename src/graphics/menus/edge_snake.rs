@@ -63,6 +63,8 @@ impl EdgeSnake {
 
     /// Returns the top-row coordinates for the head and its body segments.
     /// Body segments wrap horizontally as well, so the animation remains continuous at the edge.
+    /// # Panics
+    /// Panics if `TOTAL_SEGMENTS` exceeds `u16::MAX`.
     #[must_use]
     pub fn get_positions(&self, width: u16) -> Vec<(u16, u16)> {
         if width <= 2 {

@@ -1,6 +1,4 @@
-#![forbid(unsafe_code)]
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
+// Lint configuration (unsafe_code forbid and Clippy groups/lints) is centralized in Cargo.toml ([lints]).
 
 use rsnaker::start_snake;
 // Project size:

@@ -114,6 +114,8 @@ static RELOAD_HANDLE: OnceLock<reload::Handle<EnvFilter, Registry>> = OnceLock::
 /// Returns a `WorkerGuard` that must be kept alive to ensure logs are flushed to the file.
 /// If later wanna do rsyslog (libc): <https://docs.rs/syslog-tracing/0.3.1/syslog_tracing/struct.Syslog.html>
 /// Or the newcomer full rust: <https://crates.io/crates/tracing-rfc-5424>
+/// # Panics
+/// Panics if the default fallback time format fails to parse.
 pub fn init_logger<P: AsRef<Path>>(
     config_path: Option<P>,
 ) -> (non_blocking::WorkerGuard, LogConfig) {

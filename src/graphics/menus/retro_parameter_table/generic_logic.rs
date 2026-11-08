@@ -161,6 +161,8 @@ pub struct GenericMenu<'a> {
 }
 
 impl<'a> GenericMenu<'a> {
+    /// # Panics
+    /// Panics if the number of headers exceeds `u16::MAX`.
     #[must_use]
     pub fn new(
         rows: Vec<RowData>,
@@ -231,6 +233,8 @@ impl<'a> GenericMenu<'a> {
         }
     }
 
+    /// # Panics
+    /// Panics if terminal drawing or event reading fails.
     pub fn run(
         &mut self,
         mut actions_inputs: Vec<ActionInputs<'a>>,

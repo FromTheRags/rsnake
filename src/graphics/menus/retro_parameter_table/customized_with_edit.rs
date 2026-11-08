@@ -8,6 +8,8 @@ use clap::{CommandFactory, ValueEnum};
 use crossterm::event::KeyCode;
 use ratatui::DefaultTerminal;
 
+/// # Panics
+/// Panics if character conversion fails or terminal drawing fails.
 pub fn setup_and_run_cli_table_parameters(
     terminal: &mut DefaultTerminal,
     options: &mut GameOptions,
