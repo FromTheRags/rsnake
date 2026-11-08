@@ -32,7 +32,7 @@ jobs:
         run: cargo install cargo-cyclonedx --locked
 
       - name: Generate CycloneDX SBOM
-        run: cargo cyclonedx --format json --output-file sbom.json
+        run: cargo cyclonedx --format json --override-filename sbom
 
       - name: Scan SBOM with Grype
         uses: anchore/scan-action@v7
