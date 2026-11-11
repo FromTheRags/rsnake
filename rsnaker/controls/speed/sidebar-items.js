@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["CRAZY_CONFIG","FAST_CONFIG","NORMAL_CONFIG","SLOW_CONFIG"],"enum":["Speed"],"struct":["SpeedConfig"]};

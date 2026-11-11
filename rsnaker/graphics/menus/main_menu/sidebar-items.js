@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["BUTTONS"],"enum":["SwitchMenu"],"fn":["big_snake_menu","display_main_menu","get_button_span"],"static":["EDGE_SNAKE"],"struct":["Button"]};
