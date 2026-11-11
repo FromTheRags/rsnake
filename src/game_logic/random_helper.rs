@@ -29,11 +29,11 @@ pub fn weighted_range(choices: &[(u32, RangeInclusive<u16>)]) -> u16 {
 }
 
 /// Generates a new [`GameOptions`] instance with randomized parameters using weighted distributions.
-///
+/// Log level and load are not randomized (as not really something someone when to randomize)
 /// The resulting options span larger parameter ranges while favoring balanced, playable values.
 /// The `random` field on the returned struct is set to `true`.
 #[must_use]
-pub fn generate_random_game_options() -> GameOptions {
+pub fn generate_random_game_options(log_level: LogLevel, load: Option<u16>) -> GameOptions {
     let speed = match rng().random_range(1..=100) {
         1..=20 => Speed::Slow,
         21..=60 => Speed::Normal,
@@ -104,10 +104,10 @@ pub fn generate_random_game_options() -> GameOptions {
         snake_growth_factor,
         no_negative_size_fruits: !negative_size_fruits,
         negative_size_fruits,
-        log_level: LogLevel::Off,
+        log_level,
         no_caps_fps: !caps_fps,
         caps_fps,
-        load: None,
+        load,
         random: true,
     };
     options.validate();
@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn test_generate_random_game_options() {
         for _ in 0..100 {
-            let opt = generate_random_game_options();
+            let opt = generate_random_game_options(LogLevel::Off, None);
             assert!(opt.snake_length >= 2 && opt.snake_length <= 999);
             assert!(opt.life >= 1 && opt.life <= 99);
             assert!(opt.nb_of_fruits >= 1 && opt.nb_of_fruits <= 999);

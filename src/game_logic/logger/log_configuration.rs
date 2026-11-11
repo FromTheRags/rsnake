@@ -116,15 +116,9 @@ static RELOAD_HANDLE: OnceLock<reload::Handle<EnvFilter, Registry>> = OnceLock::
 /// Or the newcomer full rust: <https://crates.io/crates/tracing-rfc-5424>
 /// # Panics
 /// Panics if the default fallback time format fails to parse.
-pub fn init_logger<P: AsRef<Path>>(
-    config_path: Option<P>,
-) -> (non_blocking::WorkerGuard, LogConfig) {
+pub fn init_logger<P: AsRef<Path>>(config_path: P) -> (non_blocking::WorkerGuard, LogConfig) {
     // Read the entire configuration from the TOML file (deserialization only).
-    let config = if let Some(conf) = config_path {
-        LogConfig::load_from_toml(conf)
-    } else {
-        LogConfig::default()
-    };
+    let config = LogConfig::load_from_toml(config_path);
 
     let file_appender = tracing_appender::rolling::never(".", &config.file_name);
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);

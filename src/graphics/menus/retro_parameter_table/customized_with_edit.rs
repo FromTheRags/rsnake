@@ -148,15 +148,12 @@ fn random_parameter_cli_in_table(
     current_preset: Option<u16>,
     current_rows: &[RowData],
 ) -> Vec<RowData> {
-    let mut random_options = GameOptions::random();
-    random_options.load = current_preset;
-    if let Some(log_level) = extract_log_level_from_rows(current_rows) {
-        random_options.log_level = log_level;
-    }
+    let log_level = extract_log_level_from_rows(current_rows);
+    let mut random_options = GameOptions::random(log_level, current_preset);
     load_parameter_cli_in_table(&mut random_options)
 }
 
-fn extract_log_level_from_rows(rows: &[RowData]) -> Option<LogLevel> {
+fn extract_log_level_from_rows(rows: &[RowData]) -> LogLevel {
     for row in rows {
         for cell in &row.cells {
             if let CellValue::Options {
@@ -168,11 +165,11 @@ fn extract_log_level_from_rows(rows: &[RowData]) -> Option<LogLevel> {
                 && option_name == "--log-level"
                 && let Some(val_str) = values.get(*index)
             {
-                return LogLevel::from_str(val_str, true).ok();
+                return LogLevel::from_str(val_str, true).unwrap_or_default();
             }
         }
     }
-    None
+    LogLevel::default()
 }
 
 #[must_use]

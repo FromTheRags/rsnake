@@ -44,31 +44,18 @@ use tracing::{debug, info};
 /// # Panics
 /// If bad characters (invalid size) are provided for snake body or head
 pub fn start_snake() {
-    // get command line options and parsed them to check for errors (auto using value parser in clap)
-    let mut args = GameOptions::parse();
-    let cli_random = args.random;
-    //println!("{}", args.to_structured_toml());
-    //load args from the already saved preset if its user choice
-    if let Some(preset) = args.load {
-        args = GameOptions::load_from_toml_preset(preset).unwrap_or_else(|_| {
-            panic!("Fail to load Snake configuration file for preset {preset}")
-        });
-    }
-    if cli_random {
-        let previous_log_level = args.log_level;
-        let previous_load = args.load;
-        args = GameOptions::random();
-        args.log_level = previous_log_level;
-        args.load = previous_load;
-    }
-
-    // Initialize logger: configuration (level, file name, time format and all
-    // formatting booleans) is read from a dedicated TOML file inside `init_logger`.
-    let (_guard, log_config) = init_logger(Some(DEFAULT_LOG_CONFIG_PATH));
-    // CLI log level (if explicitly set, i.e., not Off) overrides the file level.
+    // Initialize logger: configuration from a dedicated TOML file
+    let (_guard, log_config) = init_logger(DEFAULT_LOG_CONFIG_PATH);
+    // Get command line options and parsed them, add resolve to interpret game options
+    let args = match GameOptions::parse().resolve() {
+        Ok(args) => args,
+        Err(e) => panic!("Fail to resolve command line arguments: {e}"),
+    };
+    // CLI log level (if explicitly set, i.e., not Off) overrides the log file configuration log level.
     if args.log_level != LogLevel::Off {
         update_log_level(args.log_level);
     }
+    debug!("{}", args.to_structured_toml());
     info!("Snake game arguments parsed and configuration is successful!");
     debug!(log_config = ?log_config);
     // If everything is OK, inits terminal for rendering

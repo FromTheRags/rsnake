@@ -113,7 +113,8 @@ strip = "symbols"  # since Rust 1.73+
 lto = true
 codegen-units = 1
 opt-level = "z"
-panic = "abort"
+#or abort to don't have the stack, to keep last log in case of crash add a panic hook if abort
+panic = "unwind"
 
 [profile.profiling]
 inherits = "release"

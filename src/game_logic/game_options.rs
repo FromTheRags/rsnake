@@ -332,6 +332,17 @@ impl GameOptions {
             toml::to_string_pretty(self).expect("Failed to serialize GameParameters to TOML");
         toml_string.parse::<Table>().expect("invalid doc")
     }
+    pub fn resolve(self) -> Result<Self, io::Error> {
+        if self.random {
+            Ok(Self::random(self.log_level, self.load))
+        }
+        //load args from the already saved preset if its user choice
+        else if let Some(preset) = self.load {
+            Self::load_from_toml_preset(preset)
+        } else {
+            Ok(self)
+        }
+    }
 
     /// Validates and clamps the parameters to their allowed ranges.
     /// Ensures that numeric values are within the bounds defined in the CLI macro
@@ -421,8 +432,8 @@ impl GameOptions {
 
     /// Returns a new `GameOptions` with randomized playable parameters using weighted distributions.
     #[must_use]
-    pub fn random() -> Self {
-        crate::game_logic::random_helper::generate_random_game_options()
+    pub fn random(log_level: LogLevel, load: Option<u16>) -> Self {
+        crate::game_logic::random_helper::generate_random_game_options(log_level, load)
     }
 }
 

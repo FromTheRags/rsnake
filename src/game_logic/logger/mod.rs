@@ -19,7 +19,7 @@
 //! use tracing::{info, span, Level};
 //!     // 1. Initialize the global logger from a TOML configuration file
 //!     //    (keep the guard alive!). If the file does not exist, defaults are used.
-//!     let _guard = init_logger(Some("snake_log_config.toml"));
+//!     let _guard = init_logger("snake_log_config.toml");
 //!
 //!     info!("This log is visible at Info level.");
 //!

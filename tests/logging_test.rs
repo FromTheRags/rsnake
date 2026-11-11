@@ -33,7 +33,7 @@ with_level = true
 
     {
         // 1. Initialize logger from the TOML file (info level)
-        let _guard = init_logger(Some(config_path));
+        let _guard = init_logger(config_path);
 
         // 2. Log an info message (should be written)
         tracing::info!(target: "rsnaker", "This is an info message");
