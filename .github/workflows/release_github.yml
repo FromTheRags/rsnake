@@ -124,6 +124,9 @@ jobs:
           $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'rsnake.lnk'
           if (-not (Test-Path $lnk)) { throw "Start menu shortcut not created: $lnk" }
           $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          # rsnake.exe has no icon of its own: the shortcut must point to the .ico installed next to it
+          $icon = ($shortcut.IconLocation -split ',')[0]
+          if (-not $icon -or -not (Test-Path $icon)) { throw "Start menu shortcut icon missing: '$($shortcut.IconLocation)'" }
           $expected = (cargo metadata --no-deps --format-version 1 | ConvertFrom-Json).packages[0].version
           Push-Location $shortcut.WorkingDirectory
           $output = & $shortcut.TargetPath --version
