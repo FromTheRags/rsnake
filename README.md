@@ -46,8 +46,12 @@ It is a terminal-based snake game using the Ratatui crate for rendering.
   OS.
 - Run the executable using the terminal or double-click on the file if your OS supports it.
 - For windows:
-    - Search for "Terminal" in the search menu to launch it and **set as default** (to be able to run the snake by
-      double-clicking the .exe) or run rsnake from the terminal with:
+    - **Installer** (recommended): download and run `rsnake-x86_64-pc-windows-msvc-setup.exe`, then launch **rsnake**
+      from the Start menu. No administrator rights needed: the game is installed for the current user in
+      `%LOCALAPPDATA%\Programs\rsnake`, and its data (high scores, presets, log) lives in `%LOCALAPPDATA%\rsnake`
+      (kept on uninstall, with some of the [Best Configurations](Best_configurations) ready to load).
+    - **Portable**: search for "Terminal" in the search menu to launch it and **set as default** (to be able to run the
+      snake by double-clicking the .exe) or run rsnake from the terminal with:
     - `cd "download path"` then `.\rsnake-x86_64-pc-windows-msvc.exe`
 - For Linux:
     - `cd "download path" && chmod +x ./rsnake-x86_64-unknown-linux-musl && ./rsnake-x86_64-unknown-linux-musl`

@@ -91,6 +91,49 @@ jobs:
           mkdir dist
           copy target\${{ matrix.target }}\release\rsnake.exe dist\rsnake-${{ matrix.target }}.exe
 
+      # Inno Setup is not guaranteed on every Windows runner image: install it only if missing.
+      # The installer version is read from Cargo.toml by the script itself (see installer/rsnake.iss).
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          function Find-Iscc {
+            $cmd = Get-Command iscc -ErrorAction SilentlyContinue
+            if ($cmd) { return $cmd.Source }
+            Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe", "$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue |
+              Select-Object -Last 1 -ExpandProperty FullName
+          }
+          $iscc = Find-Iscc
+          if (-not $iscc) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed" }
+            $iscc = Find-Iscc
+          }
+          if (-not $iscc) { throw "ISCC.exe not found" }
+          & $iscc "/DBinaryPath=target\${{ matrix.target }}\release\rsnake.exe" "/DOutputName=rsnake-${{ matrix.target }}-setup" installer\rsnake.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
+
+      # Installs silently, then runs the game the way the Start menu shortcut does (same target and
+      # working directory): a broken installer must not be published.
+      - name: Smoke test Windows installer (Start menu shortcut)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $setup = Start-Process "dist\rsnake-${{ matrix.target }}-setup.exe" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
+          if ($setup.ExitCode -ne 0) { throw "Installer failed with exit code $($setup.ExitCode)" }
+          $lnk = Join-Path ([Environment]::GetFolderPath('Programs')) 'rsnake.lnk'
+          if (-not (Test-Path $lnk)) { throw "Start menu shortcut not created: $lnk" }
+          $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
+          $expected = (cargo metadata --no-deps --format-version 1 | ConvertFrom-Json).packages[0].version
+          Push-Location $shortcut.WorkingDirectory
+          $output = & $shortcut.TargetPath --version
+          $code = $LASTEXITCODE
+          Pop-Location
+          if ($code -ne 0 -or "$output" -notmatch [regex]::Escape($expected)) {
+            throw "Installed rsnake failed from '$($shortcut.WorkingDirectory)' (exit $code, expected version $expected): $output"
+          }
+          Write-Host "Installed rsnake runs from the Start menu shortcut: $output"
+
 
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v3

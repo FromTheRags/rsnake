@@ -1,5 +1,5 @@
 use crate::graphics::menus::edge_snake::EdgeSnake;
-use crate::graphics::menus::messages::{CONTROLS_TABLE, SNAKE_LOGO};
+use crate::graphics::menus::messages::{CONTROLS_TABLE, SNAKE_LOGO, VERSION_LABEL};
 use crate::graphics::menus::utils_layout::frame_vertically_centered_rect;
 use clap::ValueEnum;
 use ratatui::style::Stylize;
@@ -27,22 +27,31 @@ pub fn display_main_menu(
 ) {
     //terminal.clear().expect("Clearing terminal fail ");
     terminal
-        .draw(|frame| {
-            let area = frame.area();
-            big_snake_menu(frame, selected_switch_menu_for_display_bracket);
-            //set a border all around the terminal
-            frame.render_widget(Block::bordered().border_type(BorderType::Double), area);
-
-            // Render the edge snake emoji
-            // Emojis often take 2 cells, we use width 2 to avoid clipping in some terminals
-            let mut edge_snake = EDGE_SNAKE
-                .get_or_init(|| Mutex::new(EdgeSnake::new()))
-                .lock()
-                .unwrap();
-            edge_snake.update(&area);
-            edge_snake.render(frame, &area);
-        })
+        .draw(|frame| render_main_menu(frame, selected_switch_menu_for_display_bracket))
         .expect("Unusable terminal render");
+}
+
+/// Renders the whole main menu in the frame: logo, buttons, controls, border with the game version
+/// and the moving edge snake
+fn render_main_menu(frame: &mut Frame, selected_switch_menu_for_display_bracket: &SwitchMenu) {
+    let area = frame.area();
+    big_snake_menu(frame, selected_switch_menu_for_display_bracket);
+    //set a border all around the terminal, with the current version in the bottom right corner
+    frame.render_widget(
+        Block::bordered()
+            .border_type(BorderType::Double)
+            .title_bottom(Line::from(VERSION_LABEL).right_aligned()),
+        area,
+    );
+
+    // Render the edge snake emoji
+    // Emojis often take 2 cells, we use width 2 to avoid clipping in some terminals
+    let mut edge_snake = EDGE_SNAKE
+        .get_or_init(|| Mutex::new(EdgeSnake::new()))
+        .lock()
+        .unwrap();
+    edge_snake.update(&area);
+    edge_snake.render(frame, &area);
 }
 
 fn big_snake_menu(frame: &mut Frame, to_display_switch: &SwitchMenu) {
@@ -149,4 +158,28 @@ fn get_button_span(selected: &SwitchMenu) -> Vec<Span<'static>> {
         vec_line_button.extend(button.to_spans());
     }
     vec_line_button
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::{Terminal, backend::TestBackend};
+
+    #[test]
+    fn main_menu_shows_current_version_on_bottom_border() {
+        let (width, height) = (100, 30);
+        let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
+        terminal
+            .draw(|frame| render_main_menu(frame, &SwitchMenu::Main))
+            .unwrap();
+        let buffer = terminal.backend().buffer();
+        let bottom_row: String = (0..width)
+            .map(|x| buffer[(x, height - 1)].symbol())
+            .collect();
+        let expected = format!(" v{} ", env!("CARGO_PKG_VERSION"));
+        assert!(
+            bottom_row.contains(&expected),
+            "version not found in bottom border: {bottom_row}"
+        );
+    }
 }

@@ -1,10 +1,13 @@
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
+use std::backtrace::{Backtrace, BacktraceStatus};
 use std::fs;
+use std::panic::{self, PanicHookInfo};
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use time::format_description;
 use time::format_description::OwnedFormatItem;
+use tracing::error;
 use tracing_appender::non_blocking;
 use tracing_subscriber::fmt::time::LocalTime;
 use tracing_subscriber::prelude::*;
@@ -102,6 +105,70 @@ So the RELOAD_HANDLE itself is only written once, that the EnvFilter, which is u
 */
 static RELOAD_HANDLE: OnceLock<reload::Handle<EnvFilter, Registry>> = OnceLock::new();
 
+/// The `tracing_appender` worker guard, shared between the [`LogGuard`] returned to the caller
+/// and the panic hook, as both may have to flush the log file.
+type SharedWorkerGuard = Arc<Mutex<Option<non_blocking::WorkerGuard>>>;
+
+/// Keeps the background log writer alive: pending logs are flushed to the file when it is dropped.
+///
+/// The panic hook shares the same underlying worker guard, so the flush also happens
+/// when the process aborts on panic (`panic = "abort"`), where nothing is dropped.
+#[must_use = "logs are flushed and the log writer stops as soon as the guard is dropped"]
+pub struct LogGuard(SharedWorkerGuard);
+
+impl Drop for LogGuard {
+    fn drop(&mut self) {
+        flush_and_stop(&self.0);
+    }
+}
+
+/// Flushes the pending logs to the file and stops the background writer (later logs are lost).
+/// `tracing_appender` has no flush on demand: it only flushes when its worker guard is dropped.
+/// Does nothing if already done.
+fn flush_and_stop(worker_guard: &SharedWorkerGuard) {
+    // The lock is released at the end of the statement: the (up to 1s) flush is done without holding it.
+    let guard = worker_guard
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .take();
+    drop(guard);
+}
+
+/// Chains a panic hook writing the panic into the log file before running the previous hook
+/// (the default one printing on stderr, or any hook installed before).
+///
+/// With `panic = "abort"` the process dies right after the hooks without unwinding, so the
+/// `LogGuard` is never dropped: the hook flushes the log file itself, to keep the last logs
+/// and the panic record. With `panic = "unwind"` the writer is kept running, as a panic in
+/// a secondary thread does not stop the program (the flush is done by the `LogGuard` drop).
+fn install_panic_hook(worker_guard: SharedWorkerGuard) {
+    let previous_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+        log_panic(panic_info);
+        if cfg!(panic = "abort") {
+            flush_and_stop(&worker_guard);
+        }
+        previous_hook(panic_info);
+    }));
+}
+
+/// Logs the panic message and its location (the file/line of the log event itself would only
+/// point here), plus the backtrace if enabled with `RUST_BACKTRACE`.
+fn log_panic(panic_info: &PanicHookInfo<'_>) {
+    let message = panic_info
+        .payload_as_str()
+        .unwrap_or("<non-string panic payload>");
+    let location = panic_info
+        .location()
+        .map_or_else(|| "<unknown>".to_string(), ToString::to_string);
+    let backtrace = Backtrace::capture();
+    if backtrace.status() == BacktraceStatus::Captured {
+        error!(%location, %backtrace, "Panic: {message}");
+    } else {
+        error!(%location, "Panic: {message}");
+    }
+}
+
 /// Initializes the global logger.
 ///
 /// Reads the logging configuration (level, file name, formatting booleans and
@@ -111,17 +178,20 @@ static RELOAD_HANDLE: OnceLock<reload::Handle<EnvFilter, Registry>> = OnceLock::
 /// Writing a Lib? Only use the tracing crate and its macros (info!, span!). Do not initialize anything.
 /// Writing a Binary? Use tracing-subscriber to build the registry and handlers.
 /// Missing dependency logs? Check your `EnvFilter` string rules and ensure the "log" feature is enabled on tracing-subscriber to catch legacy logs
-/// Returns a `WorkerGuard` that must be kept alive to ensure logs are flushed to the file.
+/// Returns a [`LogGuard`] that must be kept alive to ensure logs are flushed to the file.
+/// Also installs a panic hook logging any panic, and flushing the log file when the release
+/// profile uses `panic = "abort"` (see `install_panic_hook`).
 /// If later wanna do rsyslog (libc): <https://docs.rs/syslog-tracing/0.3.1/syslog_tracing/struct.Syslog.html>
 /// Or the newcomer full rust: <https://crates.io/crates/tracing-rfc-5424>
 /// # Panics
 /// Panics if the default fallback time format fails to parse.
-pub fn init_logger<P: AsRef<Path>>(config_path: P) -> (non_blocking::WorkerGuard, LogConfig) {
+pub fn init_logger<P: AsRef<Path>>(config_path: P) -> (LogGuard, LogConfig) {
     // Read the entire configuration from the TOML file (deserialization only).
     let config = LogConfig::load_from_toml(config_path);
 
     let file_appender = tracing_appender::rolling::never(".", &config.file_name);
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+    let worker_guard: SharedWorkerGuard = Arc::new(Mutex::new(Some(guard)));
     //To only keep my logs, as sled logs are useless (and otherwise collected),
     // Each dependency log level can be configured with the EnvFilter, e.g.: "sled=info,rsnaker=debug"
     let filter = EnvFilter::new(format!(
@@ -162,8 +232,10 @@ pub fn init_logger<P: AsRef<Path>>(config_path: P) -> (non_blocking::WorkerGuard
         eprintln!("Failed to initialize logger: logger already initialized");
     } else {
         let _ = RELOAD_HANDLE.set(reload_handle);
+        // Only once, with the logger really in use: no hook stacking on a failed re-initialization
+        install_panic_hook(Arc::clone(&worker_guard));
     }
-    (guard, config)
+    (LogGuard(worker_guard), config)
 }
 
 /// Updates the global log level dynamically.

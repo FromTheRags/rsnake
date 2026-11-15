@@ -1,0 +1,85 @@
+; Inno Setup script building the Windows installer of rsnake.
+; Used by the release workflow (.github/workflows/release_github.yml), and locally with:
+;   cargo build --release
+;   iscc installer\rsnake.iss            (output: dist\rsnake-x86_64-pc-windows-msvc-setup.exe)
+; Optional overrides: iscc /DAppVersion=1.2.3 /DBinaryPath=target\<triple>\release\rsnake.exe
+;                          /DOutputName=rsnake-<triple>-setup installer\rsnake.iss
+
+#define AppName "rsnake"
+#define AppExeName "rsnake.exe"
+#define AppPublisher "RF"
+#define AppURL "https://github.com/FromTheRags/rsnake"
+
+; Version: Cargo.toml is the single source of truth ([package] version, read as an INI file)
+#ifndef AppVersion
+  #define AppVersion ReadIni(SourcePath + "..\Cargo.toml", "package", "version", "")
+#endif
+#if AppVersion == ""
+  #error Unable to read the version from Cargo.toml, pass it with /DAppVersion=x.y.z
+#endif
+
+; Paths below are relative to the repository root (see SourceDir)
+#ifndef BinaryPath
+  #define BinaryPath "target\release\" + AppExeName
+#endif
+#ifndef OutputName
+  #define OutputName "rsnake-x86_64-pc-windows-msvc-setup"
+#endif
+
+; rsnake reads and writes all its files (high scores, presets, log, log configuration) in its
+; working directory. The installation folder must not be used for that, so the shortcuts start
+; the game in a dedicated per-user data folder, kept on uninstall and upgrade.
+#define DataDir "{localappdata}\rsnake"
+
+[Setup]
+; AppId identifies the application for upgrades and uninstall: never change it
+AppId={{201A706F-49D8-4B98-BAE4-207EB6DBD75E}
+AppName={#AppName}
+AppVersion={#AppVersion}
+AppVerName={#AppName} {#AppVersion}
+AppPublisher={#AppPublisher}
+AppPublisherURL={#AppURL}
+AppSupportURL={#AppURL}/issues
+AppUpdatesURL={#AppURL}/releases
+VersionInfoVersion={#AppVersion}
+; Per-user installation: no administrator rights needed (installs in %LOCALAPPDATA%\Programs)
+PrivilegesRequired=lowest
+DefaultDirName={autopf}\{#AppName}
+DefaultGroupName={#AppName}
+DisableProgramGroupPage=yes
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+SourceDir=..
+OutputDir=dist
+OutputBaseFilename={#OutputName}
+Compression=lzma2
+SolidCompression=yes
+WizardStyle=modern
+UninstallDisplayIcon={app}\{#AppExeName}
+UninstallDisplayName={#AppName}
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "french"; MessagesFile: "compiler:Languages\French.isl"
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Dirs]
+Name: "{#DataDir}"; Flags: uninsneveruninstall
+
+[Files]
+Source: "{#BinaryPath}"; DestDir: "{app}"; DestName: "{#AppExeName}"; Flags: ignoreversion
+Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
+; Ready-to-load presets (in-game "Edit" menu or --load), never overwriting nor removing the player's ones
+Source: "Best_configurations\snake_preset_*.toml"; DestDir: "{#DataDir}"; Flags: onlyifdoesntexist uninsneveruninstall
+
+[Icons]
+; WorkingDir is what makes the game work from the Start menu: see DataDir above
+Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExeName}"; WorkingDir: "{#DataDir}"; Comment: "A good old retro Snake in terminal UI"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; WorkingDir: "{#DataDir}"; Comment: "A good old retro Snake in terminal UI"; Tasks: desktopicon
+
+[Run]
+; Launch the game at the end of the installation (checkbox on the last page, skipped in silent mode)
+Filename: "{app}\{#AppExeName}"; WorkingDir: "{#DataDir}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent

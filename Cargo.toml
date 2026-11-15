@@ -113,8 +113,10 @@ strip = "symbols"  # since Rust 1.73+
 lto = true
 codegen-units = 1
 opt-level = "z"
-#or abort to don't have the stack, to keep last log in case of crash add a panic hook if abort
-panic = "unwind"
+#"abort": smaller binary, but no unwinding, so no destructor runs on panic (the process dies right after the panic hooks).
+#Or "unwind" to unwind the stack. Logs are safe with both: the panic hook installed by init_logger logs the panic and,
+#if abort, flushes the log file itself.
+panic = "abort"
 
 [profile.profiling]
 inherits = "release"

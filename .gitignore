@@ -2,6 +2,8 @@
 # will have compiled files and executables
 debug/
 target/
+# Release artifacts (binaries, Windows installer built by installer/rsnake.iss)
+dist/
 .ai/
 .junie/
 .idea/*

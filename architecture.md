@@ -76,8 +76,11 @@ The game uses **[Sled](https://github.com/spacejam/sled)**, an embedded NoSQL ke
 - **[Tracing](https://tracing.rs/)**: A framework for structured, asynchronous logging.
     - **Tracing-Subscriber**: Configures how logs are filtered (e.g., disabling `sled` logs while keeping `rsnaker`
       logs) and where they are sent.
-    - **Tracing-Appender**: Handles non-blocking writes to log files using a `WorkerGuard` to ensure all logs are
-      flushed before the program exits.
+    - **Tracing-Appender**: Handles non-blocking writes to log files using a `WorkerGuard` (wrapped in our `LogGuard`)
+      to ensure all logs are flushed before the program exits.
+    - **Panic hook**: `init_logger` chains a panic hook that writes the panic (message, location, and backtrace if
+      `RUST_BACKTRACE` is set) into the log file. When built with `panic = "abort"`, nothing is unwound and the guard
+      is never dropped, so the hook also flushes the log file itself: the last logs survive the crash.
     - The logging subsystem is configured from a **dedicated** TOML file (`snake_log_config.toml`), separate from the
       game options file. It is read **only once at startup**, and is **deserialization-only** (the game never writes
       back to it). If the file is missing or invalid, sensible defaults are used.

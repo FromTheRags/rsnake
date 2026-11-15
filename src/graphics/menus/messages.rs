@@ -20,6 +20,9 @@ pub const SNAKE_LOGO: &str = "\
 ███████║ ██║ ╚████║ ██║  ██║ ██║  ██╗ ███████╗
 ╚══════╝ ╚═╝  ╚═══╝ ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚══════╝";
 
+/// Current version of the game (from `Cargo.toml`), displayed on the main menu border
+pub const VERSION_LABEL: &str = concat!(" v", env!("CARGO_PKG_VERSION"), " ");
+
 // Define the control table as a constant
 pub const CONTROLS_TABLE: &str = "\
 +--------+------+------+-------+-----+-------+

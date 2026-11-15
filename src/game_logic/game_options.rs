@@ -332,6 +332,9 @@ impl GameOptions {
             toml::to_string_pretty(self).expect("Failed to serialize GameParameters to TOML");
         toml_string.parse::<Table>().expect("invalid doc")
     }
+    /// To interpret arguments that changes the others parameters
+    /// # Errors
+    /// if loading from file preset failed
     pub fn resolve(self) -> Result<Self, io::Error> {
         if self.random {
             Ok(Self::random(self.log_level, self.load))
