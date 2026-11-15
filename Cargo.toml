@@ -1,6 +1,6 @@
 [package]
 name = "rsnaker"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 authors = ["RF"]
 description = "A good old retro Snake in terminal UI"
@@ -50,6 +50,10 @@ tracing-appender = "0.2"
 #For some codes parking_lot can provide better RwLock primitives than std, not the case here
 #parking_lot = "0.12.5"
 
+
+#Windows only: embeds the application icon and version information in rsnake.exe (see build.rs)
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
 
 #For testing cli easily
 [dev-dependencies]

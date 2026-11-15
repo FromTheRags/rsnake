@@ -2,8 +2,8 @@
 
 Usage (needs Pillow):  python assets/icon/generate_icon.py
 Outputs, next to this script:
-  rsnake.ico  multi-size Windows icon, used by the installer (installer\rsnake.iss) for itself,
-              the shortcuts and the "Installed apps" entry
+  rsnake.ico  multi-size Windows icon, embedded in rsnake.exe by build.rs and used as the icon
+              of the installer
   rsnake.png  256x256 preview
 
 Everything is drawn from the coordinates below (no font, no external artwork), on a 256x256 design
